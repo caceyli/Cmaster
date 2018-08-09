@@ -92,25 +92,25 @@ echo -e "Step (4/9) update BDNA configuration."
 
 #update class in bdna.jar for tomcat upgrade.
 cd $BDNA_HOME/lib/bdna
-$BDNA_HOME/nih/jdk/bin/jar -uf $BDNA_HOME/lib/bdna.jar com/bdna/clm/CLMConfig.class 2>>$errorLog
-$BDNA_HOME/nih/jdk/bin/jar -uf $BDNA_HOME/lib/bdna.jar com/bdna/clm/CLMConfig$1.class 2>>$errorLog
-$BDNA_HOME/nih/jdk/bin/jar -uf $BDNA_HOME/lib/bdna.jar clm/ICLMConfig.class 2>>$errorLog
-$BDNA_HOME/nih/jdk/bin/jar -uf $BDNA_HOME/lib/bdna.jar com/bdna/pl/util/Catalina.class 2>>$errorLog
-$BDNA_HOME/nih/jdk/bin/jar -uf $BDNA_HOME/lib/bdna.jar com/bdna/pl/defaults/ServiceDefaults.class 2>>$errorLog
-$BDNA_HOME/nih/jdk/bin/jar -uf $BDNA_HOME/lib/bdna.jar com/bdna/pl/admin/util/AdminCatalina.class 2>>$errorLog
-$BDNA_HOME/nih/jdk/bin/jar -uf $BDNA_HOME/lib/bdna.jar com/bdna/pl/replay/FrontendReplay.class 2>>$errorLog
-$BDNA_HOME/nih/jdk/bin/jar -uf $BDNA_HOME/lib/bdna.jar com/bdna/control/command/CommandInitFB.class 2>>$errorLog
+$BDNA_HOME/nih/jdk/bin/jar -uf $BDNA_HOME/lib/bdna.jar com/bdna/clm/CLMConfig.class 
+$BDNA_HOME/nih/jdk/bin/jar -uf $BDNA_HOME/lib/bdna.jar com/bdna/clm/CLMConfig$1.class 
+$BDNA_HOME/nih/jdk/bin/jar -uf $BDNA_HOME/lib/bdna.jar com/bdna/clm/ICLMConfig.class 
+$BDNA_HOME/nih/jdk/bin/jar -uf $BDNA_HOME/lib/bdna.jar com/bdna/pl/util/Catalina.class 
+$BDNA_HOME/nih/jdk/bin/jar -uf $BDNA_HOME/lib/bdna.jar com/bdna/pl/defaults/ServiceDefaults.class 
+$BDNA_HOME/nih/jdk/bin/jar -uf $BDNA_HOME/lib/bdna.jar com/bdna/pl/admin/util/AdminCatalina.class 
+$BDNA_HOME/nih/jdk/bin/jar -uf $BDNA_HOME/lib/bdna.jar com/bdna/pl/replay/FrontendReplay.class 
+$BDNA_HOME/nih/jdk/bin/jar -uf $BDNA_HOME/lib/bdna.jar com/bdna/control/command/CommandInitFB.class 
 
 #update class in bdna_g.jar for tomcat upgrade.
 cd $BDNA_HOME/lib/bdna_g
-$BDNA_HOME/nih/jdk/bin/jar -uf $BDNA_HOME/lib/bdna_g.jar com/bdna/clm/CLMConfig.class 2>>$errorLog
-$BDNA_HOME/nih/jdk/bin/jar -uf $BDNA_HOME/lib/bdna_g.jar com/bdna/clm/CLMConfig$1.class2>>$errorLog
-$BDNA_HOME/nih/jdk/bin/jar -uf $BDNA_HOME/lib/bdna_g.jar clm/ICLMConfig.class 2>>$errorLog
-$BDNA_HOME/nih/jdk/bin/jar -uf $BDNA_HOME/lib/bdna_g.jar com/bdna/pl/util/Catalina.class 2>>$errorLog
-$BDNA_HOME/nih/jdk/bin/jar -uf $BDNA_HOME/lib/bdna_g.jar com/bdna/pl/defaults/ServiceDefaults.class 2>>$errorLog
-$BDNA_HOME/nih/jdk/bin/jar -uf $BDNA_HOME/lib/bdna_g.jar com/bdna/pl/admin/util/AdminCatalina.class 2>>$errorLog
-$BDNA_HOME/nih/jdk/bin/jar -uf $BDNA_HOME/lib/bdna_g.jar com/bdna/pl/replay/FrontendReplay.class 2>>$errorLog
-$BDNA_HOME/nih/jdk/bin/jar -uf $BDNA_HOME/lib/bdna_g.jar com/bdna/control/command/CommandInitFB.class 2>>$errorLog
+$BDNA_HOME/nih/jdk/bin/jar -uf $BDNA_HOME/lib/bdna_g.jar com/bdna/clm/CLMConfig.class 
+$BDNA_HOME/nih/jdk/bin/jar -uf $BDNA_HOME/lib/bdna_g.jar com/bdna/clm/CLMConfig$1.class
+$BDNA_HOME/nih/jdk/bin/jar -uf $BDNA_HOME/lib/bdna_g.jar com/bdna/clm/ICLMConfig.class 
+$BDNA_HOME/nih/jdk/bin/jar -uf $BDNA_HOME/lib/bdna_g.jar com/bdna/pl/util/Catalina.class 
+$BDNA_HOME/nih/jdk/bin/jar -uf $BDNA_HOME/lib/bdna_g.jar com/bdna/pl/defaults/ServiceDefaults.class 
+$BDNA_HOME/nih/jdk/bin/jar -uf $BDNA_HOME/lib/bdna_g.jar com/bdna/pl/admin/util/AdminCatalina.class 
+$BDNA_HOME/nih/jdk/bin/jar -uf $BDNA_HOME/lib/bdna_g.jar com/bdna/pl/replay/FrontendReplay.class 
+$BDNA_HOME/nih/jdk/bin/jar -uf $BDNA_HOME/lib/bdna_g.jar com/bdna/control/command/CommandInitFB.class 
 
 #clean the tmp files.
 echo "The hotfix hotfix_BDNA-30390.zip applied successfully, remove tmp files."
