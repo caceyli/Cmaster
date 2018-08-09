@@ -1,0 +1,55 @@
+#!/usr/bin/perl
+use strict;
+use warnings;
+my $cpCmd;
+my $mkCmd;
+my $bdnaHome = $ENV{BDNA_HOME};
+print "BDNA_HOME: $bdnaHome\n";
+my $jarCmd;
+my $mvCmd;
+my $name;
+my $delCme;
+my $mkCmd1;
+my $cpCfgCmd;
+my $cpTxtCmd;
+foreach $name (qw /bdna bdna_g/){
+$delCme="rm -rf ./lib/$name ./hotfix_BDNA-30390 2>/dev/null";
+qx($delCme);
+$mkCmd1="mkdir -p ./lib/$name";
+qx($mkCmd1);
+$jarCmd="jar -xf $bdnaHome/lib/$name.jar";
+qx($jarCmd);
+$mvCmd="mv  ./com ./lib/$name/com";
+qx($mvCmd);
+}
+
+while(<>){
+chomp;
+my $fileFromPath = $bdnaHome."/".$_;
+#print "file with full Path: $fileFromPath\n";
+my @dir = split(/\//,$_);
+my $fileName = pop(@dir);
+my $fileToPath = join('/',@dir);
+
+if ($fileName=~/.*class/) {
+  $fileFromPath = "./".$_;
+}
+$fileToPath="./hotfix_BDNA-30390/BDNA-30390_Tomcat8532/".$fileToPath;
+
+if (-e $fileToPath) {
+  $cpCmd="cp -r $fileFromPath $fileToPath";
+  print "cmd: $cpCmd\n";
+  qx($cpCmd);
+} else {
+  $mkCmd="mkdir -p $fileToPath";
+  #print "cmd: $mkCmd\n";
+  qx($mkCmd);
+  $cpCmd="cp -r $fileFromPath $fileToPath";
+  print "cmd: $cpCmd\n";
+  qx($cpCmd);
+}
+}
+$cpCfgCmd="cp -r ./cfgHotfix.sh  ./hotfix_BDNA-30390";
+qx($cpCfgCmd);
+$cpTxtCmd="cp readme.txt ./hotfix_BDNA-30390";
+qx($cpTxtCmd);

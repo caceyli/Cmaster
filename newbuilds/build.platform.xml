@@ -1,0 +1,2433 @@
+<project name="bDNA" default="all" basedir=".">
+<!--                                                        -->
+<!--            High-level build targets                    -->
+<!--                                                        -->
+<target name="build_platform" depends="init, prep_src, prep_build, makecql, makebvl, makej4, java, signjars, cql, sql, genLicenseKeyFile, prep_dist, dist, installkit">
+    <!-- set the build status -->
+    <echo file="${bdna.nightly_builds.this_build}/build_status.properties">build.status=COMPLETED
+</echo>
+</target>
+
+<target name="build" depends="build_platform, generate_installer" />
+
+<target name="all" depends="build, install" />
+
+<!--                                                        -->
+<!--            The build configuration                     -->
+<!--                                                        -->
+<property resource="build_env.${os.name}.properties" classpath="${basedir}"/>
+
+<!--            derive build, install and dist directories  -->
+<property name="bdna.src"                location="${basedir}/.." />
+<property name="bdna.build"              location="${bdna.src}/../build${bdna.version}" />
+<property name="bdna.install"            location="${bdna.src}/../install${bdna.version}" />
+<property name="bdna.dist"               location="${bdna.src}/../dist${bdna.version}/bdna" />
+<property name="bdna.component.name"     value="platform" />
+<property name="bdna.nightly_builds"     location="${bdna.src}/../nightly_builds" />
+
+<property classpath="${bdna.install}/conf" resource="connection.properties"/>
+<property resource="build.number" classpath="${basedir}"/>
+
+<!-- Base file name of the Tomcat archive to use for the clm. -->
+<property name="clm.tomcat.instance" value="jakarta-tomcat-5.0.19"/>
+<property name="rs.tomcat.instance" value="apache-tomcat-8.5.29" />
+
+<!-- Name of directory (in nih) of the instance of Axis to use for the clm. -->
+<property name="clm.axis.instance"   value="axis/1.2alpha"/>
+
+<!--                                                        -->
+<!--            Sets the environment variables              -->
+<!--                                                        -->
+
+<path id="javac.classpath">
+        <pathelement location="${bdna.src}/nih/Xerces/xercesImpl.jar"/>
+        <pathelement location="${bdna.src}/nih/Xerces/xml-apis.jar"/>
+        <pathelement location="${bdna.src}/nih/JUnit/junit.jar"/>
+        <pathelement location="${bdna.src}/nih/rhino/js.jar"/>
+        <pathelement location="${bdna.src}/nih/oracle/ojdbc14.jar"/>
+        <pathelement location="${bdna.src}/nih/oracle/xsu12.jar"/>
+        <pathelement location="${bdna.src}/nih/Log4J/log4j.jar"/>
+        <pathelement location="${bdna.src}/nih/SOAP/soap.jar"/>
+    <pathelement location="${bdna.src}/nih/Tomcat/lib/servlet.jar"/>
+        <pathelement location="${bdna.src}/nih/Tomcat/lib/servlet-api.jar"/>
+        <pathelement location="${bdna.src}/nih/electric/GLUE.jar"/>
+        <pathelement location="${bdna.src}/nih/electric/jnet.jar"/>
+        <pathelement location="${bdna.src}/nih/concurrent/concurrent.jar"/>
+        <pathelement location="${bdna.src}/nih/Regexp/jakarta-regexp-1.2.jar"/>
+        <pathelement location="${bdna.src}/nih/gnu/gnu-regexp-1.1.4.jar"/>
+        <pathelement location="${bdna.src}/nih/marsh/marsh.jar"/>
+        <pathelement location="${bdna.src}/nih/Velocity/velocity-dep-1.2.jar"/>
+        <pathelement location="${bdna.src}/nih/JavaCup/javacup.jar"/>
+        <pathelement location="${bdna.src}/nih/JavaCup/JFlex.jar"/>
+        <pathelement location="${bdna.src}/nih/JBAF/activation.jar"/>
+        <pathelement location="${bdna.src}/nih/Netcharts/netcharts4.jar"/>
+        <pathelement location="${bdna.src}/nih/Netcharts/ncpro.jar"/>
+        <pathelement location="${bdna.src}/nih/tinylf/tinylf.jar"/>
+        <pathelement location="${bdna.src}/nih/HTTPClient/commons-httpclient-3.1.jar"/>
+        <pathelement location="${bdna.src}/nih/Codec/commons-codec.jar"/>
+        <pathelement location="${bdna.src}/nih/htmlparser/htmlparser.jar"/>
+        <pathelement location="${bdna.src}/nih/fileupload/commons-fileupload-1.3.1.jar"/>
+        <pathelement location="${bdna.src}/nih/commons-io/commons-io-1.4.jar"/>
+        <pathelement location="${bdna.src}/nih/OpenView/libovw.jar"/>
+        <pathelement location="${bdna.src}/nih/JCalendar/jcalendar-1.3.2.jar"/>
+        <pathelement location="${bdna.src}/nih/JSON/JSON.jar"/>
+        <pathelement location="${bdna.src}/nih/BeanShell/bsh-1.2b8.jar"/>
+        <pathelement location="${bdna.src}/nih/BrowserLauncher2/BrowserLauncher2.jar"/>
+        <pathelement location="${bdna.src}/nih/xstream/xpp3_min-1.1.3.4.I.jar"/>
+        <pathelement location="${bdna.src}/nih/xstream/xstream-1.1.2.jar"/>
+        <pathelement location="${bdna.src}/content/external/IBMCMDB/dlAdapter/lib/dl_core.jar"/>
+        <pathelement location="${bdna.src}/nih/Jetty/core-3.1.1.jar"/>
+        <pathelement location="${bdna.src}/nih/Jetty/jetty-6.1.5.jar"/>
+        <pathelement location="${bdna.src}/nih/Jetty/jetty-util-6.1.5.jar"/>
+        <pathelement location="${bdna.src}/nih/Jetty/slf4j-api-1.5.6.jar"/>
+        <pathelement location="${bdna.src}/nih/Jetty/slf4j-log4j12-1.5.6.jar"/>
+        <pathelement location="${bdna.src}/nih/Jetty/jsp-2.1.jar"/>
+        <pathelement location="${bdna.src}/nih/Jetty/jsp-api-2.1.jar"/>
+        <pathelement location="${bdna.src}/nih/SunJDK/deploy.jar"/>
+        <pathelement location="${bdna.src}/conf" />
+
+        <pathelement path="${bdna.src}/conf/jiffy" />
+        <pathelement location="${bdna.build}/classes"/>
+        <!-- MRF  For the short term, assume RS and CLM can
+                  build (but not run) with the same classpath -->
+        <fileset dir="${bdna.src}/nih/${clm.axis.instance}">
+            <include name="*.jar"/>
+        </fileset>
+        <pathelement location="${bdna.build}/nih/Tomcat/${clm.tomcat.instance}/bin/bootstrap.jar"/>
+</path>
+
+<path id="test.classpath">
+            <pathelement location="${bdna.src}/nih/Velocity/velocity-dep-1.2.jar"/>
+        <pathelement path="${bdna.install}/lib/servlet.jar" />
+            <pathelement path="${bdna.install}/lib/servlet-api.jar" />
+            <pathelement path="${bdna.install}/lib/xercesImpl.jar"/>
+            <pathelement path="${bdna.install}/lib/xml-apis.jar"/>
+            <pathelement path="${bdna.install}/lib/junit.jar" />
+            <pathelement path="${bdna.install}/lib/ojdbc14.jar" />
+            <pathelement path="${bdna.install}/lib/xsu12.jar" />
+            <pathelement path="${bdna.install}/lib/log4j.jar" />
+            <pathelement path="${bdna.install}/lib/soap.jar" />
+            <pathelement path="${bdna.install}/lib/bdna_g.jar" />
+            <pathelement path="${bdna.install}/lib/mail.jar" />
+            <pathelement path="${bdna.install}/lib/activation.jar" />
+            <pathelement path="${bdna.install}/lib/jakarta-regexp-1.2.jar" />
+            <pathelement path="${bdna.install}/lib/gnu-regexp-1.1.4.jar" />
+            <pathelement path="${bdna.install}/lib/GLUE.jar" />
+            <pathelement path="${bdna.install}/lib/jnet.jar" />
+            <pathelement path="${bdna.install}/lib/marsh.jar"/>
+            <pathelement path="${bdna.install}/lib/concurrent.jar"/>
+            <pathelement path="${bdna.install}/lib/jsse.jar"/>
+            <pathelement path="${bdna.install}/lib/jcert.jar"/>
+            <pathelement path="${bdna.install}/lib/javacup.jar"/>
+            <pathelement path="${bdna.install}/lib/JFlex.jar"/>
+            <pathelement path="${bdna.install}/lib/axis.jar"/>
+            <pathelement path="${bdna.install}/lib/commons-discovery.jar"/>
+            <pathelement path="${bdna.install}/lib/commons-logging.jar"/>
+            <pathelement path="${bdna.install}/lib/saaj.jar"/>
+            <pathelement path="${bdna.install}/lib/wsdl4j.jar"/>
+            <pathelement path="${bdna.install}/lib/jaxrpc.jar"/>
+            <pathelement path="${bdna.install}/lib/js.jar"/>
+            <pathelement path="${bdna.install}/lib/jcalendar-1.3.2.jar"/>
+            <pathelement path="${bdna.install}/lib/JSON.jar"/>
+            <pathelement path="${bdna.install}/lib/bsh-1.2b8.jar"/>
+            <pathelement path="${bdna.install}/lib/BrowserLauncher2.jar"/>
+            <pathelement path="${bdna.install}/test" />
+            <pathelement path="${bdna.install}/conf" />
+            <pathelement path="${bdna.install}/conf/jiffy" />
+            <pathelement path="${bdna.install}" />
+            <pathelement path="${java.class.path}" />
+            <pathelement path="${bdna.install}/lib/bootstrap.jar"/>
+            <pathelement path="lib/tomcat-juli.jar"/>
+            <pathelement path="lib/catalina.jar"/>
+            <pathelement path="lib/tomcat-coyote.jar"/>
+            <pathelement path="lib/annotations-api.jar"/>    
+            <!-- caceyHotfix start --!>
+            <pathelement path="${bdna.install}/lib/axis-ant.jar"/>
+            <pathelement path="${bdna.install}/lib/deploy.jar"/>
+            <pathelement path="${bdna.install}/lib/geronimo-jaspi-2.0.0.jar"/>
+            <pathelement path="${bdna.install}/lib/j2ee.jar"/>
+            <pathelement path="${bdna.install}/lib/java-cup-11a-runtime.jar"/>
+            <pathelement path="${bdna.install}/lib/javax.security.auth.message.jar"/>
+            <pathelement path="${bdna.install}/lib/jcommon-1.0.17.jar"/>
+            <pathelement path="${bdna.install}/lib/jfreechart-1.0.14.jar"/>
+            <pathelement path="${bdna.install}/lib/libovw.jar"/>
+            <pathelement path="${bdna.install}/lib/sxc-jaxb-0.7.2.jar"/>
+            <pathelement path="${bdna.install}/lib/xerces.jar"/>
+            <!-- caceyHotfix end   --!>
+            <pathelement path="${bdna.install}/lib/tools.jar"/>
+            <pathelement path="${bdna.install}/lib/netcharts4.jar"/>
+            <pathelement path="${bdna.install}/lib/ncpro.jar"/>
+            <pathelement path="${bdna.install}/lib/netcharts4.jar"/>
+            <pathelement path="${bdna.install}/lib/ncpro.jar"/>
+            <pathelement path="${bdna.install}/lib/tinylf.jar"/>
+            <pathelement path="${bdna.install}/lib/commons-httpclient-3.1.jar"/>
+            <pathelement path="${bdna.install}/lib/commons-codec.jar"/>
+            <pathelement path="${bdna.install}/lib/htmlparser.jar"/>
+            <pathelement path="${bdna.install}/lib/commons-fileupload-1.3.1.jar"/>
+            <pathelement path="${bdna.install}/lib/commons-io-1.4.jar"/>
+            <pathelement path="${bdna.install}/lib/libovw.jar"/>
+            <pathelement path="${bdna.install}/lib/xpp3_min-1.1.3.4.I.jar"/>
+            <pathelement path="${bdna.install}/lib/xstream-1.1.2.jar"/>
+            <pathelement path="${bdna.install}/java/classes"/>
+</path>
+
+<path id="jsp.classpath">
+            <pathelement location="${bdna.src}/nih/Velocity/velocity-dep-1.2.jar"/>
+            <fileset dir="${bdna.dist}/nih/Tomcat/${rs.tomcat.instance}/common/lib">
+                <include name="*.jar"/>
+            </fileset>
+            <fileset dir="${bdna.dist}/nih/Tomcat/${rs.tomcat.instance}/lib">
+                <include name="*.jar"/>
+            </fileset>
+        <pathelement path="${bdna.dist}/lib/servlet.jar" />
+            <pathelement path="${bdna.dist}/lib/servlet-api.jar" />
+            <pathelement path="${bdna.dist}/lib/xercesImpl.jar"/>
+            <pathelement path="${bdna.dist}/lib/xml-apis.jar"/>
+            <pathelement path="${bdna.dist}/lib/junit.jar" />
+            <pathelement path="${bdna.dist}/lib/ojdbc14.jar" />
+            <pathelement path="${bdna.dist}/lib/xsu12.jar" />
+            <pathelement path="${bdna.dist}/lib/log4j.jar" />
+            <pathelement path="${bdna.dist}/lib/soap.jar" />
+            <pathelement path="${bdna.dist}/lib/bdna_g.jar" />
+            <pathelement path="${bdna.dist}/lib/mail.jar" />
+            <pathelement path="${bdna.dist}/lib/activation.jar" />
+            <pathelement path="${bdna.dist}/lib/jakarta-regexp-1.2.jar" />
+            <pathelement path="${bdna.dist}/lib/gnu-regexp-1.1.4.jar" />
+            <pathelement path="${bdna.dist}/lib/GLUE.jar" />
+            <pathelement path="${bdna.dist}/lib/jnet.jar" />
+            <pathelement path="${bdna.dist}/lib/marsh.jar"/>
+            <pathelement path="${bdna.dist}/lib/concurrent.jar"/>
+            <pathelement path="${bdna.dist}/lib/jsse.jar"/>
+            <pathelement path="${bdna.dist}/lib/jcert.jar"/>
+            <pathelement path="${bdna.dist}/lib/javacup.jar"/>
+            <pathelement path="${bdna.dist}/lib/JFlex.jar"/>
+            <pathelement path="${bdna.dist}/lib/axis.jar"/>
+            <pathelement path="${bdna.dist}/lib/commons-discovery.jar"/>
+            <pathelement path="${bdna.dist}/lib/commons-logging.jar"/>
+            <pathelement path="${bdna.dist}/lib/saaj.jar"/>
+            <pathelement path="${bdna.dist}/lib/wsdl4j.jar"/>
+            <pathelement path="${bdna.dist}/lib/jaxrpc.jar"/>
+            <pathelement path="${bdna.dist}/lib/js.jar"/>
+            <pathelement path="${bdna.dist}/lib/jcalendar-1.3.2.jar"/>
+            <pathelement path="${bdna.dist}/lib/JSON.jar"/>
+            <pathelement path="${bdna.dist}/lib/bsh-1.2b8.jar"/>
+            <pathelement path="${bdna.dist}/lib/BrowserLauncher2.jar"/>
+            <pathelement path="${bdna.dist}/test" />
+            <pathelement path="${bdna.dist}/conf" />
+            <pathelement path="${bdna.dist}/conf/jiffy" />
+            <pathelement path="${bdna.dist}" />
+            <pathelement path="${java.class.path}" />
+            <pathelement path="${bdna.dist}/lib/bootstrap.jar"/>
+            <pathelement path="${bdna.dist}/tomcat-juli.jar"/>
+            <pathelement path="${bdna.dist}/lib/catalina.jar"/>
+            <pathelement path="${bdna.dist}/lib/tomcat-coyote.jar"/>
+            <pathelement path="${bdna.dist}/lib/annotations-api.jar"/>
+            <!-- caceyHotfix start --!>
+            <pathelement path="${bdna.dist}/lib/axis-ant.jar"/>
+            <pathelement path="${bdna.dist}/lib/deploy.jar"/>
+            <pathelement path="${bdna.dist}/lib/geronimo-jaspi-2.0.0.jar"/>
+            <pathelement path="${bdna.dist}/lib/j2ee.jar"/>
+            <pathelement path="${bdna.dist}/lib/java-cup-11a-runtime.jar"/>
+            <pathelement path="${bdna.dist}/lib/javax.security.auth.message.jar"/>
+            <pathelement path="${bdna.dist}/lib/jcommon-1.0.17.jar"/>
+            <pathelement path="${bdna.dist}/lib/jfreechart-1.0.14.jar"/>
+            <pathelement path="${bdna.dist}/lib/libovw.jar"/>
+            <pathelement path="${bdna.dist}/lib/sxc-jaxb-0.7.2.jar"/>
+            <pathelement path="${bdna.dist}/lib/xerces.jar"/>
+            <!-- caceyHotfix end   --!>     
+            <pathelement path="${bdna.dist}/lib/tools.jar"/>
+            <pathelement path="${bdna.dist}/lib/ncpro.jar"/>
+            <pathelement path="${bdna.dist}/lib/netcharts4.jar"/>
+            <pathelement path="${bdna.dist}/lib/tinylf.jar"/>
+            <pathelement path="${bdna.dist}/lib/commons-httpclient-3.1.jar"/>
+            <pathelement path="${bdna.dist}/lib/commons-codec.jar"/>
+            <pathelement path="${bdna.dist}/lib/htmlparser.jar"/>
+            <pathelement path="${bdna.dist}/lib/commons-fileupload-1.3.1.jar"/>
+            <pathelement path="${bdna.dist}/lib/commons-io-1.4.jar"/>
+            <pathelement path="${bdna.dist}/lib/libovw.jar"/>
+            <pathelement path="${bdna.dist}/lib/xpp3_min-1.1.3.4.I.jar"/>
+            <pathelement path="${bdna.dist}/lib/xstream-1.1.2.jar"/>
+            <pathelement path="${bdna.dist}/java/classes"/>
+</path>
+
+<path id="bmccmdb.classpath">
+    <fileset dir="${bdna.src}/nih/BMCCMDB/v201">
+         <include name="*.jar"/>
+    </fileset>
+    <fileset dir="${bdna.src}/nih/BMCCMDB/v210">
+         <include name="*.jar"/>
+    </fileset>
+</path>
+
+<!-- directory that contains emma.jar and emma_ant.jar: -->
+<property name="emma.dir" value="${bdna.src}/nih/emma" />
+
+<!-- path element used by EMMA taskdef below: -->
+<path id="emma.lib" >
+  <pathelement location="${emma.dir}/emma.jar" />
+  <pathelement location="${emma.dir}/emma_ant.jar" />
+</path>
+
+<!-- this loads <emma> and <emmajava> custom tasks: -->
+<taskdef resource="emma_ant.properties" classpathref="emma.lib" />
+
+<!--                                                        -->
+<!--            Stamp the build                             -->
+<!--                                                        -->
+
+<target name="stamp">
+    <tstamp>
+        <format property="bdna.build.stamp" pattern="yyyy_MM_dd_HH_mm" />
+    </tstamp>
+
+    <tstamp>
+        <format property="bdna.build.jar.stamp" pattern="yyyyMMdd" />
+    </tstamp>
+
+    <!-- bdna.build.number is the value of build.number at the time
+         an "ant stamp" is done.  That way, the destination directory
+         does not change even if the developer re-synchronizes with the
+         repository and gets an updated build.number file.  -->
+    <property name="bdna.build.number" value="${build.number}" />
+    <echo file="${basedir}/current_build.stamp">bdna.build.stamp=${bdna.build.stamp}
+bdna.build.number=${bdna.build.number}
+</echo>
+</target>
+
+<target name="init">
+    <property resource="current_build.stamp" classpath="${basedir}"/>
+    <!-- Depend on ant properties being immutable; if a developer wants
+         to do builds without doing a stamp, they can.  But if they
+         did do a stamp in this source tree, then the values from
+         current_build.stamp will prevail. -->
+    <property name="bdna.build.stamp" value="1970_01_01_00_00" />
+    <property name="bdna.build.number" value="0000" />
+
+    <property name="bdna.nightly_builds.this_build" value="${bdna.nightly_builds}/${bdna.component.name}/${bdna.version}/${bdna.build.stamp}_${bdna.build.number}" />
+    <mkdir dir="${bdna.nightly_builds.this_build}" />
+</target>
+
+<!--                                                        -->
+<!--            Prepare the src directories               -->
+<!--                                                        -->
+<target name="prep_src" depends="init">
+   <copy todir="${bdna.src}/ShellScripts/Windows 2003">
+      <fileset dir="${bdna.src}/ShellScripts/Windows XP">
+          <include name="**" />
+      </fileset>
+   </copy>
+</target>
+
+<!--                                                        -->
+<!--            Prepare the build directories               -->
+<!--                                                        -->
+<target name="prep_build" depends="init">
+    <delete dir="${bdna.build}" />
+    <mkdir dir="${bdna.build}/include" />
+    <mkdir dir="${bdna.build}/lib" />
+    <mkdir dir="${bdna.build}/obj" />
+    <mkdir dir="${bdna.build}/temp" />
+    <mkdir dir="${bdna.build}/installer" />
+    <mkdir dir="${bdna.build}/sql" />
+    <mkdir dir="${bdna.build}/sql/oracle" />
+    <mkdir dir="${bdna.build}/sql/sqlserver" />
+    <mkdir dir="${bdna.build}/classes" />
+    <mkdir dir="${bdna.build}/classes/pso" />
+    <mkdir dir="${bdna.build}/debug/classes" />
+    <mkdir dir="${bdna.build}/doc" />
+    <mkdir dir="${bdna.build}/doc/api" />
+    <mkdir dir="${bdna.build}/doc/internal" />
+    <mkdir dir="${bdna.build}/nih" />
+    <mkdir dir="${bdna.build}/conf" />
+    <mkdir dir="${bdna.build}/pl" />
+    <mkdir dir="${bdna.build}/pl/web" />
+    <mkdir dir="${bdna.build}/pl/web/client" />
+    <unzip src="${bdna.src}/nih/Tomcat/${clm.tomcat.instance}.zip" dest="${bdna.build}/nih/Tomcat">
+        <patternset>
+            <include name="**/*.jar"/>
+            <include name="**/*.xml"/>
+        </patternset>
+    </unzip>
+    <copy todir="${bdna.build}/installer/">
+            <fileset dir="${bdna.src}/installer/">
+             <include name="**" />
+        </fileset>
+    </copy>
+</target>
+
+<target name="signjars" depends="init">
+    <signjar jar="${bdna.build}/lib/app.jar"
+         storepass="changeit"
+         alias="apps"
+         keystore="${bdna.src}/conf/.keystore"
+         />
+</target>
+
+<!--                                                        -->
+<!--        Build the bdna server Java classes and docs     -->
+<!--                                                        -->
+<target name="java" depends="init,prepare_messageBundle">
+    <javac
+        srcdir="${bdna.src}"
+        includes="com/**"
+        destdir="${bdna.build}/classes"
+        classpathref="javac.classpath"
+        failonerror="true"
+        verbose="${verbose}"
+        debug="${debug}"
+        optimize="${optimize}"
+        fork="true"
+        memoryMaximumSize="256M"
+        source="1.5">
+    </javac>
+
+    <javac
+        srcdir="${bdna.src}"
+        includes="com/**"
+        destdir="${bdna.build}/debug/classes"
+        classpathref="javac.classpath"
+        failonerror="true"
+        verbose="${verbose}"
+        debug="on"
+        excludes="**/MessageBusServer*"
+        fork="true"
+        memoryMaximumSize="256M"
+        optimize="off"
+        source="1.5">
+    </javac>
+    <javac
+        srcdir="${bdna.src}"
+        destdir="${bdna.build}/debug/classes"
+        classpathref="javac.classpath"
+        failonerror="true"
+        verbose="${verbose}"
+        debug="${debug}"
+        includes="**/MessageBusServer*"
+        fork="true"
+        memoryMaximumSize="256M"
+        optimize="off"
+        source="1.5">
+    </javac>
+
+    <javac
+        srcdir="${bdna.src}/pso/common/java"
+        destdir="${bdna.build}/classes/"
+        classpathref="javac.classpath"
+        failonerror="true"
+        verbose="${verbose}"
+        debug="${debug}"
+        optimize="${optimize}"
+        source="1.5">
+    </javac>
+
+    <javac
+        srcdir="${bdna.src}/pso/common/java"
+        destdir="${bdna.build}/debug/classes"
+        classpathref="javac.classpath"
+        failonerror="true"
+        verbose="${verbose}"
+        debug="on"
+        excludes="**/MessageBusServer*"
+        optimize="off"
+        source="1.5">
+    </javac>
+
+    <javac
+        srcdir="${bdna.src}/content/external"
+        includes="IBMCMDB/dlAdapter/**"
+        destdir="${bdna.build}/classes/"
+        classpathref="javac.classpath"
+        failonerror="true"
+        verbose="${verbose}"
+        debug="${debug}"
+        optimize="${optimize}"
+        source="1.5">
+    </javac>
+
+    <javac
+        srcdir="${bdna.src}/content/external"
+        includes="IBMCMDB/dlAdapter/**"
+        destdir="${bdna.build}/debug/classes"
+        classpathref="javac.classpath"
+        failonerror="true"
+        verbose="${verbose}"
+        debug="on"
+        optimize="off"
+        source="1.5">
+    </javac>
+    <!-- BMC CMDB Acclerator files are common for CMDB v201 and CMDB v210.
+    CMDB v201 minimum java requirement is 1.4, hence compiling with source and target = 1.4  -->
+    <javac
+        srcdir="${bdna.src}/content/external"
+        includes="BMCCMDB/BDNA_BMCCMDB_Accelerator/src/**"
+        destdir="${bdna.build}/classes"
+        classpathref="bmccmdb.classpath"
+        failonerror="true"
+        verbose="${verbose}"
+        debug="${debug}"
+        optimize="${optimize}"
+        source="1.4"
+        target="1.4">
+    </javac>
+    
+    <copy todir="${bdna.build}/classes/com/bdna/app/widget/vmap/view/resources">
+      <fileset dir="${bdna.src}/com/bdna/app/widget/vmap/view/resources">
+          <include name="**" />
+      </fileset>
+    </copy>
+    
+    <copy todir="${bdna.build}/debug/classes/com/bdna/app/widget/vmap/view/resources">
+      <fileset dir="${bdna.src}/com/bdna/app/widget/vmap/view/resources">
+          <include name="**" />
+      </fileset>
+    </copy>
+    
+    <copy todir="${bdna.build}/classes/com/bdna/app/widget/adm/res">
+      <fileset dir="${bdna.src}/com/bdna/app/widget/adm/res">
+          <include name="**" />
+      </fileset>
+    </copy>
+
+    <copy todir="${bdna.build}/debug/classes/com/bdna/app/widget/adm/res">
+      <fileset dir="${bdna.src}/com/bdna/app/widget/adm/res">
+          <include name="**" />
+      </fileset>
+    </copy>
+    
+    <jar
+        jarfile="${bdna.build}/lib/bdna_g.jar"
+        basedir="${bdna.build}/debug/classes"
+        excludes="**/mbus/testing/*.*, **/junit, **/junit/*.*,
+                  **/benchmark/*.*, **/Installer.class,
+                  **/rule/builder/Sample*.class, **/com/bdna/clm/service/*.*,
+                  **/com/bdna/cle/ser/*.*, **/com/bdna/jiffy/j4/*.*, **/com/bdna/bmccmdb/*.*, **/com/bdna/si/udt/*.* "/>
+    <jar
+        jarfile="${bdna.build}/lib/bdna.jar"
+        basedir="${bdna.build}/classes"
+        excludes="**/mbus/testing/*.*, **/junit, **/junit/*.*,
+                  **/benchmark/*.*, **/Installer.class,
+                  **/rule/builder/Sample*.class, **/com/bdna/clm/service/*.*,
+                  **/com/bdna/cle/ser/*.*, **/com/bdna/jiffy/j4/*.*, **/com/bdna/bmccmdb/*.*, **/com/bdna/si/udt/*.*"/>
+
+    <jar
+        jarfile="${bdna.build}/lib/bdnaUdt_g.jar"
+        basedir="${bdna.build}/debug/classes" 
+        includes="**/com/bdna/si/udt/*.*" />
+    <jar
+        jarfile="${bdna.build}/lib/bdnaUdt.jar"
+        basedir="${bdna.build}/classes"
+        includes="**/com/bdna/si/udt/*.*" />
+    
+    <!-- make the app client jar. Netcharts doesn't like it when the license -->
+    <!-- file resides in app.jar -->
+    <unjar src="${bdna.src}/nih/Netcharts/ncpro.jar" dest="${bdna.build}/temp/"/>
+    <unjar src="${bdna.src}/nih/tinylf/tinylf.jar" dest="${bdna.build}/temp/"/>
+    <unjar src="${bdna.src}/nih/HTTPClient/commons-httpclient-3.1.jar" dest="${bdna.build}/temp/" />
+    <unjar src="${bdna.src}/nih/Codec/commons-codec.jar" dest="${bdna.build}/temp/" />
+    <unjar src="${bdna.src}/nih/axis/commons-logging.jar" dest="${bdna.build}/temp/" />
+    <unjar src="${bdna.src}/nih/htmlparser/htmlparser.jar" dest="${bdna.build}/temp/" />
+    <unjar src="${bdna.src}/nih/JavaCup/javacup_runtime.jar" dest="${bdna.build}/temp/"/>
+    <unjar src="${bdna.src}/nih/JavaMail/mail.jar" dest="${bdna.build}/temp/"/>
+    <unjar src="${bdna.src}/nih/JCalendar/jcalendar-1.3.2.jar" dest="${bdna.build}/temp/"/>
+    <unjar src="${bdna.src}/nih/JBAF/activation.jar" dest="${bdna.build}/temp/"/>
+    <unjar src="${bdna.src}/nih/BrowserLauncher2/BrowserLauncher2.jar" dest="${bdna.build}/temp/"/>
+    <jar destfile="${bdna.build}/lib/j4.jar">
+        <fileset dir="${bdna.build}/debug/classes"
+             includes="**/com/bdna/jiffy/j4/*" />
+    </jar>
+
+    <jar destfile="${bdna.build}/lib/app.jar">
+        <fileset dir="${bdna.build}/debug/classes"
+             includes="**/com/bdna/app/**" />
+        <fileset dir="${bdna.build}/temp"
+             includes="**/netcharts/**" />
+        <fileset dir="${bdna.build}/temp"
+             includes="**/sun/**" />
+        <fileset dir="${bdna.build}/temp"
+             includes="**/toedter/**" />
+
+        <!-- for BrowserLauncher2 -->
+        <fileset dir="${bdna.build}/temp"
+             includes="**/edu/stanford/ejalbert/**" />
+        <fileset dir="${bdna.build}/temp"
+             includes="**/net/sf/wraplog/**" />
+        <!-- end BrowserLauncher2 -->
+
+        <fileset dir="${bdna.build}/temp"
+             includes="**/org/**" />
+        <fileset dir="${bdna.build}/temp"
+             includes="**/java_cup/**" />
+        <fileset dir="${bdna.build}/temp"
+             includes="**/javax/mail/**" />
+        <fileset dir="${bdna.build}/temp"
+             includes="**/javax/activation/**" />
+        <fileset dir="${bdna.build}/temp"
+             includes="**/tinylookandfeel/**" />
+        <fileset dir="${bdna.src}/schema"
+             includes="app.dtd" />
+        <fileset dir="${bdna.build}/conf"
+             includes="MessagesBundle.properties" />
+        <fileset dir="${bdna.build}/pl/web/client"
+             includes="versionCheck.htm" />
+        <fileset dir="${bdna.src}/com/bdna/app/util"
+             includes="*.properties" />
+        <fileset dir="${bdna.src}/com/bdna/app/resource"
+             includes="**" />
+        <fileset dir="${bdna.src}/nih/Netcharts">
+            <include name="NFLicense.dat" />
+        </fileset>
+        <manifest>
+            <attribute name="Main-Class" value="com.bdna.app.uiengine.SwingAppClient"/>          
+        </manifest>        
+    </jar>
+
+    <jar
+        jarfile="${bdna.build}/lib/bdna-bmccmdb.jar"
+        basedir="${bdna.build}/classes"
+        includes="**/com/bdna/bmccmdb/*.*"
+    />
+
+    <jar
+        jarfile="${bdna.build}/lib/clmService_g.jar"
+        basedir="${bdna.build}/debug/classes"
+        includes="**/com/bdna/clm/service/*.*, **/com/bdna/cle/ser/*.*"/>
+    <jar
+        jarfile="${bdna.build}/lib/clmService.jar"
+        basedir="${bdna.build}/classes"
+        includes="**/com/bdna/clm/service/*.*, **/com/bdna/cle/ser/*.*"/>
+
+    <war destfile="${bdna.build}/lib/clmService.war" webxml="${bdna.src}/com/bdna/clm/service/web.xml">
+        <lib dir="${bdna.src}/nih/${clm.axis.instance}">
+            <include name="**/axis*.jar"/>
+            <include name="**/commons*.jar"/>
+            <include name="**/log4j*.*"/>
+            <include name="**/wsdl4j.jar"/>
+        </lib>
+        <lib dir="${bdna.build}/lib">
+            <include name="clmService.jar"/>
+        </lib>
+        <webinf dir="${bdna.src}/com/bdna/clm/service">
+            <include name="*.wsdd"/>
+        </webinf>
+    </war>
+    <war destfile="${bdna.build}/lib/clmService_g.war" webxml="${bdna.src}/com/bdna/clm/service/web.xml">
+        <lib dir="${bdna.src}/nih/${clm.axis.instance}">
+            <include name="**/axis*.jar"/>
+            <include name="**/commons*.jar"/>
+            <include name="**/log4j*.*"/>
+            <include name="**/wsdl4j.jar"/>
+        </lib>
+        <lib dir="${bdna.build}/lib">
+            <include name="clmService_g.jar"/>
+        </lib>
+        <webinf dir="${bdna.src}/com/bdna/clm/service">
+            <include name="*.wsdd"/>
+        </webinf>
+    </war>
+</target>
+
+<target name="clean_class_files">
+    <delete dir="${bdna.build}/classes/" verbose="true" />
+</target>
+
+
+<target name="java_src_copy" depends="java">
+    <copy file="${bdna.build}/lib/bdna.jar" todir="${bdna.install}/lib" />
+    <copy file="${bdna.build}/lib/bdna_g.jar" todir="${bdna.install}/lib" />
+    <copy file="${bdna.build}/lib/bdnaUdt.jar" todir="${bdna.install}/lib" />
+    <copy file="${bdna.build}/lib/bdnaUdt_g.jar" todir="${bdna.install}/lib" />
+    <copy file="${bdna.build}/lib/app.jar" todir="${bdna.install}/lib" />
+    <copy file="${bdna.build}/lib/cql.jar" todir="${bdna.install}/lib" />
+    <copy file="${bdna.build}/lib/j4.jar" todir="${bdna.install}/lib" />
+    <copy file="${bdna.build}/lib/clmService.jar" todir="${bdna.install}/lib" />
+    <copy file="${bdna.build}/lib/clmService_g.jar" todir="${bdna.install}/lib" />
+    <copy file="${bdna.build}/conf/MessagesBundle.properties" todir="${bdna.install}/conf" />
+    <copy file="${bdna.build}/pl/web/client/versionCheck.htm" todir="${bdna.install}/bdna_web" />
+
+    <copy todir="${bdna.install}">
+        <fileset dir="${bdna.build}/debug/classes" includes="**/benchmark/*.class" />
+        <fileset dir="${bdna.build}/debug/classes" includes="Sample*.class" />
+        <fileset dir="${bdna.build}/debug/classes" includes="**/junit/*.class" />
+        <fileset dir="${bdna.build}/debug/classes" includes="**/mbus/testing/*.class" />
+        <fileset dir="${bdna.src}" includes="**/benchmark/*.xml,**/benchmark/*.pl" />
+        <fileset dir="${bdna.src}" includes="**/junit/*.xml, **/junit/*.pl, **/junit/*.txt, **/junit/*.csv, **/junit/*.properties, **/junit/*.data" />
+    </copy>
+</target>
+
+
+<target name="j4" depends="java, makej4">
+    <copy file="${bdna.build}/lib/j4.jar" todir="${bdna.install}/lib" />
+</target>
+
+<target name="javadocs" depends="init">
+    <javadoc packagenames="com.bdna.si.metadata,com.bdna.mbus.api,com.bdna.external.shared,com.bdna.jiffy"
+        sourcepath="${bdna.src}"
+        destdir="${bdna.build}/doc/api"
+        classpathref="javac.classpath"
+        source="1.5"
+        maxmemory="256m" >
+    </javadoc>
+</target>
+
+<target name="internaldocs" depends="init">
+    <javadoc packagenames="com.bdna.*"
+        sourcepath="${bdna.src}"
+        destdir="${bdna.build}/doc/internal"
+        source="1.5"
+        Private="true"
+        maxmemory="256m"
+        classpathref="javac.classpath" >
+    </javadoc>
+    <copy todir="${bdna.nightly_builds}/internaldocs" >
+          <fileset dir="${bdna.build}/doc/internal">
+      </fileset>
+    </copy>
+</target>
+
+<!--                                                        -->
+<!--            Build the database scripts                  -->
+<!--                                                        -->
+<target name="sql" depends="init">
+    <java
+        classname="com.bdna.ut.schema.SchemaGenerator"
+        classpathref="javac.classpath"
+        failonerror="true"
+        fork="yes" >
+        <sysproperty key="bdna.home" value="${bdna.src}"/>
+        <arg value="generate" />
+        <arg value="oracle" />
+        <arg value="${bdna.src}" />
+        <arg value="${bdna.build}/sql/oracle/" />
+    </java>
+</target>
+
+<!--                                                        -->
+<!--            Generate the inventory SQL tool             -->
+<!--                                                        -->
+<target name="makecql" depends="init">
+    <exec
+        executable="java"
+        dir="${bdna.src}/com/bdna/ut/inventory">
+        <arg line=" -classpath ${bdna.src}/nih/JavaCup/javacup.jar java_cup.Main -package com.bdna.ut.inventory ISQL.cup " />
+    </exec>
+
+    <exec
+        executable="java"
+        dir="${bdna.src}/com/bdna/ut/inventory">
+        <arg line=" -classpath ${bdna.src}/nih/JavaCup/JFlex.jar JFlex.Main ISQL.lex " />
+    </exec>
+</target>
+
+<target name="makej4" depends="init">
+    <exec executable="java"
+          dir="${bdna.src}/com/bdna/jiffy/j4">
+          <arg line="-classpath ${bdna.src}/nih/JavaCup/javacup.jar java_cup.Main -package com.bdna.jiffy.j4 J4.cup" />
+    </exec>
+
+    <exec
+        executable="java"
+        dir="${bdna.src}/com/bdna/jiffy/j4">
+        <arg line=" -classpath ${bdna.src}/nih/JavaCup/JFlex.jar JFlex.Main J4.lex " />
+    </exec>
+</target>
+
+<target name="makebvl" depends="init">
+    <exec
+        executable="java"
+        dir="${bdna.src}/com/bdna/bvl/parsing">
+        <arg line=" -classpath ${bdna.src}/nih/JavaCup/javacup.jar java_cup.Main -package com.bdna.bvl.parsing BVL.cup " />
+    </exec>
+
+    <exec
+        executable="java"
+        dir="${bdna.src}/com/bdna/bvl/parsing">
+        <arg line=" -classpath ${bdna.src}/nih/JavaCup/JFlex.jar JFlex.Main BVL.lex " />
+    </exec>
+
+    <exec
+        executable="java"
+        dir="${bdna.src}/com/bdna/app/widget/expressionbuilder">
+        <arg line=" -classpath ${bdna.src}/nih/JavaCup/javacup.jar java_cup.Main -package com.bdna.app.widget.expressionbuilder Expression.cup " />
+    </exec>
+
+    <exec
+        executable="java"
+        dir="${bdna.src}/com/bdna/app/widget/expressionbuilder">
+        <arg line=" -classpath ${bdna.src}/nih/JavaCup/JFlex.jar JFlex.Main Expression.lex " />
+    </exec>
+</target>
+
+<target name="genLicenseKeyFile" depends="java">
+     <java
+        classname="com.bdna.app.util.LicenseKeyManager"
+        classpathref="javac.classpath"
+        failonerror="true"
+        fork="yes" >
+        <sysproperty key="bdna.home" value="${bdna.build}"/>
+        <sysproperty key="bdna.src" value="${bdna.src}"/>
+        <arg value="createKeyFile" />
+    </java>
+</target>
+
+<!--                                                        -->
+<!--            Generate the inventory SQLs                     -->
+<!--                                                        -->
+
+<target name="cql" depends="init">
+
+    <mkdir dir="${bdna.build}/cql/com/bdna/ut/inventory" />
+
+    <copy file="${bdna.src}/com/bdna/ut/inventory/udt_info.dat"
+        todir="${bdna.build}/classes/com/bdna/ut/inventory" />
+    <copy todir="${bdna.build}/cql/com/bdna/ut/inventory">
+        <fileset dir="${bdna.build}/classes/com/bdna/ut/inventory" />
+    </copy>
+
+    <unjar src="${bdna.src}/nih/JavaCup/JFlex.jar" dest="${bdna.build}/cql"/>
+    <unjar src="${bdna.src}/nih/JavaCup/javacup.jar" dest="${bdna.build}/cql/"/>
+
+    <jar
+       jarfile="${bdna.build}/lib/cql.jar"
+       manifest="${bdna.src}/com/bdna/ut/inventory/mainClass.txt"
+       basedir="${bdna.build}/cql" >
+        <fileset dir="${bdna.build}/cql" >
+           <include name="com/**"/>
+        </fileset>
+        <fileset dir="${bdna.build}/cql/JFlex" />
+        <fileset dir="${bdna.build}/cql/java_cup" />
+    </jar>
+
+    <mkdir dir="${bdna.build}/pso/reports/base/tables" />
+    <mkdir dir="${bdna.build}/pso/reports/cql" />
+    <copy file="${bdna.src}/pso/common/reports/inv.cql"
+        todir="${bdna.build}/pso/reports/cql" />
+    <copy file="${bdna.src}/pso/common/reports/traces.cql"
+        todir="${bdna.build}/pso/reports/cql" />
+<!--
+    <java
+        classname="com.bdna.ut.inventory.parser"
+        classpathref="javac.classpath"
+        failonerror="true"
+        fork="yes" >
+        <arg value="${bdna.src}/pso/common/reports/inv.cql" />
+        <arg value="${bdna.build}/pso/reports/base/tables/inventory.sql" />
+    </java>
+
+    <java
+        classname="com.bdna.ut.inventory.parser"
+        classpathref="javac.classpath"
+        failonerror="true"
+        fork="yes" >
+        <arg value="${bdna.src}/com/bdna/ut/inventory/dw.cql" />
+        <arg value="${bdna.build}/sql/oracle/dw.sql" />
+    </java>
+
+    <java
+        classname="com.bdna.ut.inventory.parser"
+        classpathref="javac.classpath"
+        failonerror="true"
+        fork="yes" >
+        <arg value="${bdna.src}/pso/common/reports/traces.cql" />
+        <arg value="${bdna.build}/pso/reports/base/tables/traces.sql" />
+    </java>
+-->
+</target>
+
+<!--                                                        -->
+<!--            Prepare the distribution directories        -->
+<!--                                                        -->
+<target name="prep_dist"  depends="init">
+    <delete dir="${bdna.dist}" />
+    <mkdir dir="${bdna.dist}/access" />
+    <mkdir dir="${bdna.dist}/application" />
+    <mkdir dir="${bdna.dist}/bin" />
+    <mkdir dir="${bdna.dist}/lib" />
+    <mkdir dir="${bdna.dist}/conf" />
+    <mkdir dir="${bdna.dist}/conf/sql" />
+    <mkdir dir="${bdna.dist}/conf/components" />
+    <mkdir dir="${bdna.dist}/conf/jiffy" />
+    <mkdir dir="${bdna.dist}/content" />
+    <mkdir dir="${bdna.dist}/content/templates" />
+    <mkdir dir="${bdna.dist}/content/cmdb" />
+    <mkdir dir="${bdna.dist}/content/cmdb/IBM" />
+    <mkdir dir="${bdna.dist}/content/cmdb/IBM/XSIProject" />
+    <mkdir dir="${bdna.dist}/content/cmdb/IBM/XSIProject/com" />
+    <mkdir dir="${bdna.dist}/content/cmdb/IBM/XSIProject/com/bdna" />
+    <mkdir dir="${bdna.dist}/content/cmdb/IBM/XSIProject/com/bdna/external" />
+    <mkdir dir="${bdna.dist}/content/cmdb/IBM/XSIProject/com/bdna/external/ibmcmdb" />
+    <mkdir dir="${bdna.dist}/content/cmdb/BMC" />
+    <mkdir dir="${bdna.dist}/content/cmdb/BMC/BDNA_BMC_XSIProject" />
+    <mkdir dir="${bdna.dist}/content/cmdb/BMC/BDNA_BMC_XSIProject_NoWAR_NoUNIXPackages" />
+    <mkdir dir="${bdna.dist}/content/cmdb/BMC/BDNA_BMCCMDB_Accelerator" />
+    <mkdir dir="${bdna.dist}/content/cmdb/BMC/BDNA_BMCCMDB_Accelerator/logs" />
+    <mkdir dir="${bdna.dist}/content/cmdb/BDNAERI" />
+    <mkdir dir="${bdna.dist}/content/cmdb/BDNAERI/ERIProject" />
+    <mkdir dir="${bdna.dist}/content/cmdb/BDNAERI/ERIProject/com" />
+    <mkdir dir="${bdna.dist}/content/cmdb/BDNAERI/ERIProject/com/bdna" />
+    <mkdir dir="${bdna.dist}/content/cmdb/BDNAERI/ERIProject/com/bdna/external" />
+    <mkdir dir="${bdna.dist}/content/cmdb/BDNAERI/ERIProject/com/bdna/external/bdnaeri" />
+    <mkdir dir="${bdna.dist}/content/warranty" />
+    <mkdir dir="${bdna.dist}/content/warranty/com" />
+    <mkdir dir="${bdna.dist}/content/warranty/com/bdna" />
+    <mkdir dir="${bdna.dist}/content/warranty/com/bdna/app" />
+    <mkdir dir="${bdna.dist}/sql" />
+    <mkdir dir="${bdna.dist}/sql/oracle" />
+    <mkdir dir="${bdna.dist}/sql/sqlserver" />
+    <mkdir dir="${bdna.dist}/i18n" />
+    <mkdir dir="${bdna.dist}/logs" />
+    <mkdir dir="${bdna.dist}/temp" />
+    <mkdir dir="${bdna.dist}/file_store" />
+    <mkdir dir="${bdna.dist}/cts_file_store" />
+    <mkdir dir="${bdna.dist}/scripts" />
+    <mkdir dir="${bdna.dist}/doc" />
+    <mkdir dir="${bdna.dist}/doc/api" />
+    <mkdir dir="${bdna.dist}/nih" />
+    <mkdir dir="${bdna.dist}/nih/Tomcat" />
+    <mkdir dir="${bdna.dist}/nih/Tomcat/${clm.tomcat.instance}" />
+    <mkdir dir="${bdna.dist}/nih/Tomcat/${clm.tomcat.instance}/bin" />
+    <mkdir dir="${bdna.dist}/nih/Tomcat/${clm.tomcat.instance}/common" />
+    <mkdir dir="${bdna.dist}/nih/Tomcat/${clm.tomcat.instance}/common/lib" />
+    <mkdir dir="${bdna.dist}/nih/Tomcat/${clm.tomcat.instance}/common/classes" />
+    <mkdir dir="${bdna.dist}/nih/Tomcat/${clm.tomcat.instance}/common/endorsed" />
+    <mkdir dir="${bdna.dist}/nih/Tomcat/${clm.tomcat.instance}/shared" />
+    <mkdir dir="${bdna.dist}/nih/Tomcat/${clm.tomcat.instance}/shared/lib" />
+    <mkdir dir="${bdna.dist}/nih/Tomcat/${clm.tomcat.instance}/shared/lib/classes" />
+    <mkdir dir="${bdna.dist}/nih/Tomcat/${clm.tomcat.instance}/server" />
+    <mkdir dir="${bdna.dist}/nih/Tomcat/${clm.tomcat.instance}/server/lib" />
+    <mkdir dir="${bdna.dist}/nih/Tomcat/${clm.tomcat.instance}/server/classes" />
+    <mkdir dir="${bdna.dist}/nih/aspelltar" />
+    <mkdir dir="${bdna.dist}/nih/aspell" />
+    <mkdir dir="${bdna.dist}/upgrade" />
+    <mkdir dir="${bdna.dist}/schema" />
+    <mkdir dir="${bdna.dist}/examples" />
+    <mkdir dir="${bdna.dist}/examples/external" />
+    <mkdir dir="${bdna.dist}/clmService" />
+    <mkdir dir="${bdna.dist}/clmService/conf" />
+    <mkdir dir="${bdna.dist}/clmService/work" />
+    <mkdir dir="${bdna.dist}/clmService/temp" />
+    <mkdir dir="${bdna.dist}/clmService/logs" />
+    <mkdir dir="${bdna.dist}/clmService/webapps" />
+    <mkdir dir="${bdna.dist}/ctsService" />
+    <mkdir dir="${bdna.dist}/ctsService/webapps" />
+    <mkdir dir="${bdna.dist}/ctsService/webapps/axis" />
+    <mkdir dir="${bdna.dist}/ctsService/webapps/axis/WEB-INF" />
+    <mkdir dir="${bdna.dist}/ctsService/webapps/axis/WEB-INF/attachments" />
+    <mkdir dir="${bdna.dist}/rsService" />
+    <mkdir dir="${bdna.dist}/rsService/webapps" />
+    <mkdir dir="${bdna.dist}/rsService/webapps/axis" />
+    <mkdir dir="${bdna.dist}/rsService/webapps/axis/WEB-INF" />
+    <mkdir dir="${bdna.dist}/rsService/webapps/axis/WEB-INF/attachments" />
+    <mkdir dir="${bdna.dist}/archive" />
+    <mkdir dir="${bdna.dist}/appframe" />
+    <mkdir dir="${bdna.dist}/appframe/com" />
+    <mkdir dir="${bdna.dist}/appframe/com/bdna" />
+    <mkdir dir="${bdna.dist}/appframe/com/bdna/modules" />
+    <mkdir dir="${bdna.dist}/appframe/com/bdna/modules/appmeta" />
+    <mkdir dir="${bdna.dist}/appframe/com/bdna/modules/xsi" />
+    <mkdir dir="${bdna.dist}/appframe/temp" />
+    <mkdir dir="${bdna.dist}/appdata" />
+    <mkdir dir="${bdna.dist}/sccache" />
+    <mkdir dir="${bdna.dist}/wincs" />
+    <mkdir dir="${bdna.dist}/wincs/installer" />
+
+    <!-- make an empty java/classes/com/bdna/external directory -->
+    <mkdir dir="${bdna.dist}/java/classes/com/bdna/external" />
+    <mkdir dir="${bdna.dist}/modules/com/bdna" />
+    <mkdir dir="${bdna.dist}/java/classes/com/bdna/si/udt" />
+    <mkdir dir="${bdna.dist}/java/sources/com/bdna/si/udt" />
+</target>
+
+
+
+<!--                                                        -->
+<!--            Populate the dist directories               -->
+<!--                                                        -->
+
+<target name="prepare_messageBundle">
+    <copy file="${bdna.src}/conf/MessagesBundle.properties"
+        todir="${bdna.build}/conf" />
+    <copy file="${bdna.src}/pl/web/client/versionCheck.htm"
+        todir="${bdna.build}/pl/web/client" />
+    <replace
+        file="${bdna.build}/conf/MessagesBundle.properties"
+        value="${bdna.version}">
+    <replacefilter
+       token="@bdna.version@"/>
+    </replace>
+    <replace
+        file="${bdna.build}/pl/web/client/versionCheck.htm"
+        value="${bdna.version}">
+    <replacefilter
+        token="@bdna.version@"/>
+    </replace>
+</target>
+
+<target name="dist_UNIX" if="UNIX" >
+    <copy todir="${bdna.dist}/nih/aspelltar">
+        <fileset dir="${bdna.src}/nih/aspell">
+            <include name="**" />
+        </fileset>
+    </copy>
+    <copy todir="${bdna.dist}/bin">
+        <fileset dir="${bdna.src}/ShellScripts/UNIX">
+            <include name="**" />
+            <exclude name="dbupgrade_metadata.sh" />
+            <exclude name="dbupgrade_schema.sh" />
+            <exclude name="dbupgrade.sh" />
+            <exclude name="cql_symc.sh" />
+            <exclude name="configBDNA.sh" />
+            <exclude name="testupgrade.sh" />
+            <exclude name="upgradeSoftware.sh" />
+            <exclude name="agenda.sh" />
+            <exclude name="aspell.sh" />
+            <exclude name="checkcle.pl" />
+            <exclude name="cle.sh" />
+            <exclude name="clm.sh" />
+            <exclude name="config.sh" />
+            <exclude name="createdb.sh" />
+            <exclude name="dbgbdna.sh" />
+            <exclude name="debugjava.sh" />
+            <exclude name="dnsConfig.sh" />
+            <exclude name="execrules.pl" />
+            <exclude name="finishinstall.sh" />
+            <exclude name="frontend.sh" />
+            <exclude name="install.sh" />
+            <exclude name="j4i" />
+            <exclude name="loadSchema.sh" />
+            <exclude name="mlogview.pl" />
+            <exclude name="profjava.sh" />
+            <exclude name="recreate.sh" />
+            <exclude name="replay.pl" />
+            <exclude name="rules.sh" />
+            <exclude name="startServer.sh" />
+            <exclude name="suspendCLE.sh" />
+            <exclude name="suspendCLM.sh" />
+            <exclude name="suspendjava.sh" />
+            <exclude name="updatebar" />
+            <exclude name="xsi.sh" />
+            <exclude name="SunOS" />
+            <exclude name="Linux" />
+        </fileset>
+    </copy>
+    <untar src="${bdna.src}/nih/aspell/aspell-0.60.4.tar" dest="${bdna.dist}/nih" />
+    <untar src="${bdna.src}/nih/aspell/aspell6-en-6.0-0.tar" dest="${bdna.dist}/nih" />
+    <exec dir="${bdna.dist}/nih/aspell-en/"
+       executable="/bin/mv"
+       failonerror="false">
+       <arg line="en.dat en.dat.orig" />
+    </exec>
+    <exec dir="${bdna.dist}/nih/aspell-en/" output="${bdna.dist}/nih/aspell-en/en.dat"
+       executable="/bin/sed"
+       failonerror="false">
+       <arg line="'s/soundslike en/#soundslike en/g' en.dat.orig" />
+    </exec>
+
+    <exec dir="${bdna.dist}/nih/aspellinstall/"
+       executable="sh"
+       failonerror="false">
+       <arg line="configure --prefix=${bdna.dist}/nih/aspell/ --exec-prefix=${bdna.dist}/nih/aspell" />
+    </exec>
+    <exec dir="${bdna.dist}/nih/aspellinstall/"
+       executable="make"
+       failonerror="false">
+    </exec>
+    <exec dir="${bdna.dist}/nih/aspellinstall/"
+       executable="make"
+       failonerror="false">
+       <arg line="install" />
+    </exec>
+
+    <exec dir="${bdna.dist}/nih/aspell-en/"
+       executable="sh"
+       failonerror="false">
+       <arg line="configure --vars ASPELL=${bdna.dist}/nih/aspell/bin/aspell PREZIP=${bdna.dist}/nih/aspell/bin/prezip-bin" />
+    </exec>
+    <exec dir="${bdna.dist}/nih/aspell-en/"
+       executable="make"
+       failonerror="false">
+    </exec>
+    <exec dir="${bdna.dist}/nih/aspell-en/"
+       executable="make"
+       failonerror="false">
+       <arg line="install" />
+    </exec>
+    <exec
+       executable="/bin/rm"
+       failonerror="false">
+       <arg line="-rf ${bdna.dist}/nih/aspell-en/" />
+    </exec>
+    <exec
+       executable="/bin/rm"
+       failonerror="false">
+       <arg line="-rf ${bdna.dist}/nih/aspellinstall/" />
+    </exec>
+
+    <unzip src="${bdna.src}/nih/SunJDK/jdk.jar" dest="${bdna.dist}/nih" />
+    <copy file="${bdna.src}/nih/SunJDK/jre.exe" todir="${bdna.dist}/bdna_web" />
+</target>
+
+<target name="dist_WIN" if="WIN" >
+    <unzip src="${bdna.src}/nih/SunJDK/jdk1.5.0_04.jar" dest="${bdna.dist}/nih" />
+</target>
+
+<target name="dist_to_src_UNIX" if="UNIX" >
+    <copy todir="${bdna.src}/bin">
+        <fileset dir="${bdna.src}/ShellScripts/UNIX">
+            <include name="**" />
+        </fileset>
+    </copy>
+</target>
+
+
+<target name="dist" depends="init, dist_UNIX, dist_WIN">
+
+    <!-- dist the bdna jarfile -->
+    <copy todir="${bdna.dist}/lib">
+        <fileset dir="${bdna.build}/lib" includes="*.jar" />
+        <fileset dir="${bdna.build}/lib" includes="*.lib" />
+    </copy>
+
+    <!-- dist the 3rd party jar files -->
+    <copy file="${bdna.src}/nih/Xerces/xercesImpl.jar" todir="${bdna.dist}/lib" />
+    <copy file="${bdna.src}/nih/Xerces/xml-apis.jar" todir="${bdna.dist}/lib" />
+    <copy file="${bdna.src}/nih/JUnit/junit.jar" todir="${bdna.dist}/lib" />
+    <copy file="${bdna.src}/nih/oracle/ojdbc14.jar" todir="${bdna.dist}/lib" />
+    <copy file="${bdna.src}/nih/oracle/xsu12.jar" todir="${bdna.dist}/lib" />
+    <copy file="${bdna.src}/nih/Log4J/log4j.jar" todir="${bdna.dist}/lib" />
+    <copy file="${bdna.src}/nih/SOAP/soap.jar" todir="${bdna.dist}/lib" />
+    <copy file="${bdna.src}/nih/JavaMail/mail.jar" todir="${bdna.dist}/lib" />
+    <copy file="${bdna.src}/nih/JBAF/activation.jar" todir="${bdna.dist}/lib" />
+    <copy file="${bdna.src}/nih/Regexp/jakarta-regexp-1.2.jar" todir="${bdna.dist}/lib" />
+    <copy file="${bdna.src}/nih/gnu/gnu-regexp-1.1.4.jar" todir="${bdna.dist}/lib" />
+    <copy file="${bdna.src}/nih/electric/GLUE.jar" todir="${bdna.dist}/lib" />
+    <copy file="${bdna.src}/nih/electric/jnet.jar" todir="${bdna.dist}/lib" />
+    <copy file="${bdna.src}/nih/Tomcat/lib/servlet.jar" todir="${bdna.dist}/lib" />
+    <copy file="${bdna.src}/nih/Tomcat/lib/servlet-api.jar" todir="${bdna.dist}/lib" />
+    <copy file="${bdna.src}/nih/concurrent/concurrent.jar" todir="${bdna.dist}/lib" />
+    <copy file="${bdna.src}/nih/Velocity/velocity-dep-1.2.jar" todir="${bdna.dist}/lib" />
+    <copy file="${bdna.src}/nih/JSSE/jnet.jar" todir="${bdna.dist}/lib" />
+    <copy file="${bdna.src}/nih/JSSE/jsse.jar" todir="${bdna.dist}/lib" />
+    <copy file="${bdna.src}/nih/JSSE/jcert.jar" todir="${bdna.dist}/lib" />
+    <copy file="${bdna.src}/nih/marsh/marsh.jar" todir="${bdna.dist}/lib" />
+    <copy file="${bdna.src}/nih/JavaCup/javacup.jar" todir="${bdna.dist}/lib" />
+    <copy file="${bdna.src}/nih/JavaCup/JFlex.jar" todir="${bdna.dist}/lib" />
+    <!--copy file="${bdna.src}/nih/Tomcat/apache-tomcat-6.0.32.zip" todir="${bdna.dist}/nih/Tomcat" /-->
+    <!--copy file="${bdna.src}/nih/Tomcat/jakarta-tomcat-4.1.27.exe" todir="${bdna.dist}/nih/Tomcat" /-->
+    <copy file="${bdna.src}/nih/Tomcat/catalina.sh" todir="${bdna.dist}/nih/Tomcat" />
+    <copy file="${bdna.src}/nih/Tomcat/server.xml" todir="${bdna.dist}/nih/Tomcat" />
+    <copy file="${bdna.src}/nih/Tomcat/setclasspath.sh" todir="${bdna.dist}/nih/Tomcat" />
+    <copy file="${bdna.src}/nih/Tomcat/setclasspath.bat" todir="${bdna.dist}/nih/Tomcat" />
+    <copy file="${bdna.src}/nih/axis/axis.jar" todir="${bdna.dist}/lib" />
+    <copy file="${bdna.src}/nih/axis/commons-discovery.jar" todir="${bdna.dist}/lib" />
+    <copy file="${bdna.src}/nih/axis/commons-logging.jar" todir="${bdna.dist}/lib" />
+    <copy file="${bdna.src}/nih/axis/saaj.jar" todir="${bdna.dist}/lib" />
+    <copy file="${bdna.src}/nih/axis/wsdl4j.jar" todir="${bdna.dist}/lib" />
+    <copy file="${bdna.src}/nih/axis/jaxrpc.jar" todir="${bdna.dist}/lib" />
+    <copy file="${bdna.src}/nih/rhino/js.jar" todir="${bdna.dist}/lib" />
+    <copy file="${bdna.src}/nih/Tomcat/bootstrap.jar" todir="${bdna.dist}/lib" />
+    <copy file="${bdna.src}/nih/Tomcat/bootstrap.jar" todir="${bdna.dist}/lib" />
+    <copy file="${bdna.src}/nih/Tomcat/lib/tomcat-juli.jar" todir="${bdna.dist}/lib" />
+    <copy file="${bdna.src}/nih/Tomcat/lib/catalina.jar" todir="${bdna.dist}/lib" />
+    <copy file="${bdna.src}/nih/Tomcat/lib/tomcat-coyote.jar" todir="${bdna.dist}/lib" />
+    <copy file="${bdna.src}/nih/Tomcat/lib/annotations-api.jar" todir="${bdna.dist}/lib" />
+    <!-- caceyHotfix start --!>
+    <copy file="${bdna.src}/nih/Tomcat/lib/axis-ant.jar" todir="${bdna.dist}/lib" />
+    <copy file="${bdna.src}/nih/Tomcat/lib/deploy.jar" todir="${bdna.dist}/lib" />
+    <copy file="${bdna.src}/nih/Tomcat/lib/geronimo-jaspi-2.0.0.jar" todir="${bdna.dist}/lib" />
+    <copy file="${bdna.src}/nih/Tomcat/lib/j2ee.jar" todir="${bdna.dist}/lib" />
+    <copy file="${bdna.src}/nih/Tomcat/lib/java-cup-11a-runtime.jar" todir="${bdna.dist}/lib" />
+    <copy file="${bdna.src}/nih/Tomcat/lib/javax.security.auth.message.jar" todir="${bdna.dist}/lib" />
+    <copy file="${bdna.src}/nih/Tomcat/lib/jcommon-1.0.17.jar" todir="${bdna.dist}/lib" />
+    <copy file="${bdna.src}/nih/Tomcat/lib/jfreechart-1.0.14.jar" todir="${bdna.dist}/lib" />
+    <copy file="${bdna.src}/nih/Tomcat/lib/libovw.jar" todir="${bdna.dist}/lib" />
+    <copy file="${bdna.src}/nih/Tomcat/lib/sxc-jaxb-0.7.2.jar" todir="${bdna.dist}/lib" />
+    <copy file="${bdna.src}/nih/Tomcat/lib/xerces.jar" todir="${bdna.dist}/lib" />
+    <!-- caceyHotfix end   --!>
+    <copy file="${bdna.src}/nih/Tomcat/tools.jar" todir="${bdna.dist}/lib" />
+    <copy file="${bdna.src}/nih/Sun/jlfgr-1_0.jar" todir="${bdna.dist}/lib" />
+<!--
+    <copy file="${bdna.src}/nih/Netcharts/netcharts4.jar" todir="${bdna.dist}/lib" />
+    <copy file="${bdna.src}/nih/Netcharts/ncpro.jar" todir="${bdna.dist}/lib" />
+-->
+    <copy file="${bdna.src}/nih/tinylf/tinylf.jar" todir="${bdna.dist}/lib" />
+    <copy file="${bdna.src}/nih/HTTPClient/commons-httpclient-3.1.jar" todir="${bdna.dist}/lib" />
+    <copy file="${bdna.src}/nih/Codec/commons-codec.jar" todir="${bdna.dist}/lib" />
+    <copy file="${bdna.src}/nih/htmlparser/htmlparser.jar" todir="${bdna.dist}/lib" />
+    <copy file="${bdna.src}/nih/fileupload/commons-fileupload-1.3.1.jar" todir="${bdna.dist}/lib" />
+    <copy file="${bdna.src}/nih/commons-io/commons-io-1.4.jar" todir="${bdna.dist}/lib" />
+    <copy file="${bdna.src}/nih/JCalendar/jcalendar-1.3.2.jar" todir="${bdna.dist}/lib" />
+    <copy file="${bdna.src}/nih/JSON/JSON.jar" todir="${bdna.dist}/lib" />
+    <copy file="${bdna.src}/nih/BeanShell/bsh-1.2b8.jar" todir="${bdna.dist}/lib" />
+    <copy file="${bdna.src}/nih/BrowserLauncher2/BrowserLauncher2.jar" todir="${bdna.dist}/lib" />
+    <copy file="${bdna.src}/nih/xstream/xpp3_min-1.1.3.4.I.jar" todir="${bdna.dist}/lib" />
+    <copy file="${bdna.src}/nih/xstream/xstream-1.1.2.jar" todir="${bdna.dist}/lib" />
+    <copy file="${bdna.src}/content/external/IBMCMDB/dlAdapter/lib/dl_core.jar" todir="${bdna.dist}/lib" />
+
+    <!-- Copy Jetty related jar files to lib-->
+    <copy file="${bdna.src}/nih/Jetty/core-3.1.1.jar" todir="${bdna.dist}/lib" />
+    <copy file="${bdna.src}/nih/Jetty/jetty-6.1.5.jar" todir="${bdna.dist}/lib" />
+    <copy file="${bdna.src}/nih/Jetty/jetty-util-6.1.5.jar" todir="${bdna.dist}/lib" />
+    <copy file="${bdna.src}/nih/Jetty/slf4j-api-1.5.6.jar" todir="${bdna.dist}/lib" />
+    <copy file="${bdna.src}/nih/Jetty/slf4j-log4j12-1.5.6.jar" todir="${bdna.dist}/lib" />
+    <copy file="${bdna.src}/nih/Jetty/jsp-2.1.jar" todir="${bdna.dist}/lib" />
+    <copy file="${bdna.src}/nih/Jetty/jsp-api-2.1.jar" todir="${bdna.dist}/lib" />
+
+    <!-- Copy PerlCS and MbusClient to lib -->
+    <copy file="${bdna.src}/scripts/CLE/Perl/bin/PerlCS/PerlCS.pl" todir="${bdna.dist}/lib" />
+    <copy file="${bdna.src}/scripts/CLE/Perl/bin/PerlCS/PerlCSChild.pl" todir="${bdna.dist}/lib" />
+    <copy file="${bdna.src}/scripts/CLE/Perl/bin/PerlCS/PerlCSMbusClient.pl" todir="${bdna.dist}/lib" />
+    <copy file="${bdna.src}/scripts/CLE/Perl/Modules/MbusClient/MbusClient.pm" todir="${bdna.dist}/lib" />
+
+    <copy file="${bdna.src}/pso/common/ServerInstallation/centos_vm/wincs_deploy/bdna_wincs_response.iss" todir="${bdna.dist}/wincs/installer" />
+    <copy file="${bdna.src}/pso/common/ServerInstallation/centos_vm/wincs_deploy/run_wincs_install.cmd" todir="${bdna.dist}/wincs/installer" />
+
+    <!-- Copy the entite admin tomcat installation to build directory-->
+    <copy todir="${bdna.dist}/nih/Tomcat/admin">
+        <fileset dir="${bdna.src}/nih/Tomcat/admin">
+            <include name="**" />
+        </fileset>
+    </copy>
+
+    <!-- dist the dll/so/executable files and scripts -->
+    <copy todir="${bdna.dist}/bin">
+        <fileset dir="${bdna.build}/lib">
+            <include name="*.dll"/>
+            <include name="*.so"/>
+        </fileset>
+    </copy>
+
+    <!-- dist the database files -->
+    <copy todir="${bdna.dist}/sql">
+        <fileset dir="${bdna.src}/schema" includes="**/*.sql,**/*.dmp" />
+        <fileset dir="${bdna.build}/sql" includes="**/*.sql" />
+    </copy>
+
+    <!-- Distribute the built PSO files -->
+    <copy todir="${bdna.dist}/pso">
+        <fileset dir="${bdna.build}/pso" includes="**" />
+    </copy>
+
+    <mkdir dir="${bdna.dist}/pso/CDB"/>
+    <copy file="${bdna.src}/pso/CDB/DataExtract.sh" todir="${bdna.dist}/pso/CDB" />
+    <copy file="${bdna.src}/pso/CDB/extract.sql" todir="${bdna.dist}/pso/CDB" />
+    <copy file="${bdna.src}/pso/CDB/cpu_extract.sql" todir="${bdna.dist}/pso/CDB" />
+
+
+    <!-- dist the misc scripts -->
+    <copy todir="${bdna.dist}/scripts">
+        <fileset dir="${bdna.src}/scripts">
+            <include name="**/*" />
+            <exclude name="CLE/Perl/Modules/RemoteShell/test.pl" />
+            <exclude name="CLE/Perl/Modules/RemoteShell/Changes" />
+            <exclude name="CLE/Perl/Modules/RemoteShell/MANIFEST" />
+            <exclude name="CLE/Perl/Modules/RemoteShell/Makefile.PL" />
+            <exclude name="CLE/Perl/Modules/RemoteShell/tests" />
+            <exclude name="CLE/Perl/Modules/RemoteShell/tests/*" />
+            <exclude name="CLE/Perl/bin/PerlCS/PerlCS.pl" />
+            <exclude name="CLE/Perl/Modules/MbusClient/MbusClient.pm" />
+        </fileset>
+    </copy>
+
+    <!-- copy the built-in application modules -->
+    <copy todir="${bdna.dist}/appframe/com/bdna/modules/appmeta">
+        <fileset dir="${bdna.src}/com/bdna/app/widget" includes="*.xml" />
+        <fileset dir="${bdna.src}/com/bdna/app/uiengine" includes="*.xml" />
+        <!-- <fileset dir="${bdna.src}/com/bdna/app/application" includes="*.xml" /> -->
+    </copy>
+
+    <!-- copy the built-in application data modules -->
+    <copy todir="${bdna.dist}/appdata">
+        <fileset dir="${bdna.src}/com/bdna/app/data" includes="*.xml" excludes="marketData-*.xml"/>
+        <fileset dir="${bdna.src}/com/bdna/app/data" includes="*.std" />
+    </copy>
+
+<!--
+    <unzip src="${bdna.src}/com/bdna/app/data/marketData-NextGen.zip" dest="${bdna.dist}/appdata/" />
+-->
+
+    <!-- copy the xsi_schema module -->
+    <copy todir="${bdna.dist}/appframe/com/bdna/modules/xsi">
+        <fileset dir="${bdna.src}/com/bdna/xsi/schema" includes="*.xml" />
+    </copy>
+
+    <!-- copy the upgrade related files -->
+    <copy todir="${bdna.dist}/upgrade">
+        <fileset dir="${bdna.src}/upgrade">
+            <include name="**/*" />
+            <exclude name="02*" />
+            <exclude name="03*" />
+            <exclude name="04*" />
+            <exclude name="351_352" />
+            <exclude name="351_352/*" />
+            <exclude name="356_357" />
+            <exclude name="356_357/*" />
+            <exclude name="356_36" />
+            <exclude name="356_36/*" />
+            <exclude name="357_358" />
+            <exclude name="357_358/*" />
+            <exclude name="357_36" />
+            <exclude name="357_36/*" />
+            <exclude name="36_361" />
+            <exclude name="36_361/*" />
+            <exclude name="357_40" />
+            <exclude name="357_40/*" />
+            <exclude name="36_40" />
+            <exclude name="36_40/*" />
+            <exclude name="400_411" />
+            <exclude name="400_411/*" />
+            <exclude name="400_410/*" />
+            <exclude name="400_410" />
+            <exclude name="410_420/*" />
+            <exclude name="410_420" />
+            <exclude name="420_430/*" />
+            <exclude name="420_430" />
+            <exclude name=" 430_50/*" />
+            <exclude name=" 430_50" />
+            <exclude name="420_50/*" />
+            <exclude name="420_50" />
+            <exclude name="430_50/*" />
+            <exclude name="430_50" />
+            <exclude name="430_501/*" />
+            <exclude name="430_501" />
+            <exclude name="500_510" />
+            <exclude name="510_521" />
+            <exclude name="510_600/*" />
+            <exclude name="510_600" />
+            <exclude name="510_601/*" />
+            <exclude name="510_601" />
+            <exclude name="600_601/*" />
+            <exclude name="600_601" />
+            <exclude name="600_610/*" />
+            <exclude name="600_610" />
+            <exclude name="Patch_from_HotFix3" />
+        </fileset>
+    </copy>
+
+    <!-- copy the schema related files -->
+    <copy todir="${bdna.dist}/schema">
+        <fileset dir="${bdna.src}/schema" includes="schema.xml" />
+    </copy>
+
+    <copy todir="${bdna.dist}/conf/sql">
+       <fileset dir="${bdna.src}/conf/sql">
+           <include name="*.sql" />
+       </fileset>
+    </copy>
+
+
+    <copy todir="${bdna.dist}/conf/components">
+       <fileset dir="${bdna.src}/conf/components">
+           <include name="*.vm" />
+       </fileset>
+    </copy>
+
+    <copy todir="${bdna.dist}/conf/jiffy">
+        <fileset dir="${bdna.src}/conf/jiffy">
+            <include name="**" />
+        </fileset>
+    </copy>
+
+    <copy file="${bdna.src}/content/scripts/bcploader.sh" todir="${bdna.dist}/bin" />
+
+    <exec dir="${bdna.dist}/bin"
+          os="Linux"
+          executable="/bin/chmod">
+          <arg line="+x bcploader.sh" />
+     </exec>
+
+
+
+    <!-- dist the configuration files -->
+    <copy todir="${bdna.dist}/conf">
+        <fileset dir="${bdna.src}/schema">
+            <include name="app.dtd" />
+        </fileset>
+        <fileset dir="${bdna.src}/schema">
+            <include name="bdna.dtd" />
+        </fileset>
+        <fileset dir="${bdna.src}/nih/Netcharts">
+            <include name="NFLicense.dat" />
+        </fileset>
+        <fileset dir="${bdna.src}/com/bdna/app/util">
+            <include name="*.properties" />
+        </fileset>
+        <fileset dir="${bdna.src}/schema">
+            <include name="app.dtd" />
+        </fileset>
+        <fileset dir="${bdna.src}/conf">
+            <include name="upgrade.dtd" />
+        </fileset>
+        <fileset dir="${bdna.src}/conf">
+            <include name=".keystore" />
+        </fileset>
+        <fileset dir="${bdna.src}/conf">
+            <include name="bdnaBCPks" />
+        </fileset>
+        <fileset dir="${bdna.src}/conf">
+            <include name="bdnakeystore" />
+        </fileset>
+        <fileset dir="${bdna.src}/conf">
+            <include name="*.properties" />
+            <exclude name="MessagesBundle.properties" />
+        </fileset>
+        <fileset dir="${bdna.build}/conf">
+            <include name="MessagesBundle.properties" />
+        </fileset>
+        <fileset dir="${bdna.src}/conf">
+            <include name="bdna.boot" />
+        </fileset>
+        <fileset dir="${bdna.src}/conf">
+            <include name="properties.xml" />
+        </fileset>
+        <fileset dir="${bdna.src}/conf">
+            <include name="replay.config" />
+            <include name="ReplayScript.perl" />
+            <include name="ReplayScript.wincs" />
+        </fileset>
+        <fileset dir="${bdna.src}/conf">
+            <include name="boot.xml" />
+        </fileset>
+        <fileset dir="${bdna.src}/conf">
+            <include name="bootfb.xml" />
+        </fileset>
+        <fileset dir="${bdna.src}/conf">
+            <include name="netchartObj_mapping.xml" />
+        </fileset>
+        <fileset dir="${bdna.src}/conf">
+            <include name="sanity.xml" />
+        </fileset>
+        <fileset dir="${bdna.src}/conf">
+            <include name="cle.xml" />
+        </fileset>
+
+        <fileset dir="${bdna.src}/conf">
+            <include name="precomputeQueries.xml" />
+        </fileset>
+
+        <fileset dir="${bdna.src}/conf">
+            <include name="safepw" />
+        </fileset>
+
+        <fileset dir="${bdna.src}/conf">
+            <include name="glue-config.xml" />
+        </fileset>
+
+        <fileset dir="${bdna.src}/conf">
+            <include name="*.wsdd" />
+        </fileset>
+
+        <fileset dir="${bdna.src}/conf">
+            <include name="scmap.conf" />
+        </fileset>
+
+        <fileset dir="${bdna.src}/conf">
+            <include name="udt.tpl" />
+        </fileset>
+        
+        <!-- client license key file license.txt from CVS -->
+        <fileset dir="${bdna.src}/conf">
+            <include name="license.*" />
+        </fileset>
+
+        <!-- generated master license key file license.bin -->
+        <fileset dir="${bdna.build}/conf">
+            <include name="license.*" />
+        </fileset>
+        <fileset dir="${bdna.src}/conf">
+            <include name="monitoractions.xml" />
+        </fileset>
+    </copy>
+
+
+    <!-- dist the java classes -->
+    <!--
+    <copy todir="${bdna.dist}/java/classes/com/bdna/si/udt">
+        <fileset dir="${bdna.build}/classes/com/bdna/si/udt">
+            <include name="**" />
+        </fileset>
+    </copy>
+    -->
+
+
+    <!-- dist the java sources -->
+    <!-- 
+    <copy todir="${bdna.dist}/java/sources/com/bdna/si/udt">
+        <fileset dir="${bdna.src}/com/bdna/si/udt">
+            <include name="**" />
+        </fileset>
+    </copy>
+    -->
+
+
+    <!-- dist the java docs -->
+    <copy todir="${bdna.dist}/doc/api">
+        <fileset dir="${bdna.build}/doc/api">
+            <include name="**" />
+        </fileset>
+    </copy>
+
+    <!-- dist the nih components -->
+    <copy todir="${bdna.dist}/nih">
+        <fileset dir="${bdna.build}/nih">
+            <include name="**" />
+        </fileset>
+        <fileset dir="${bdna.src}/nih">
+            <include name="npadmin/npadmin.Linux" />
+        </fileset>
+    </copy>
+
+    <!-- dist the bdna access modules -->
+    <copy todir="${bdna.dist}/access">
+        <fileset dir="${bdna.src}/access">
+            <include name="**/*" />
+        </fileset>
+    </copy>
+
+    <!-- dist the bdna velocity templates -->
+    <copy todir="${bdna.dist}/content/templates">
+        <fileset dir="${bdna.src}/content/templates">
+            <include name="**/*.tm" />
+        </fileset>
+    </copy>
+
+    <!-- dist the bdna application files -->
+    <copy todir="${bdna.dist}/application">
+        <fileset dir="${bdna.src}/application">
+            <include name="**/*" />
+        </fileset>
+    </copy>
+
+    <!-- dist the frontend -->
+    <copy todir="${bdna.dist}/bdna_web">
+        <fileset dir="${bdna.src}/pl/web/client/">
+            <include name="**" />
+            <exclude name="templates/admin/" />
+            <exclude name="templates/admin/*" />
+            <exclude name="versionCheck.htm" />
+            <exclude name="alldashboard.jsp" />
+            <exclude name="confirmLogin.jsp" />
+            <exclude name="dashboard.jsp" />
+            <exclude name="drilldown.jsp" />
+            <exclude name="drilldown2.jsp" />
+            <exclude name="drilldownLine.jsp" />
+            <exclude name="exportdata.jsp" />
+            <exclude name="healthcheck.jsp" />
+            <exclude name="login.jsp" />
+            <exclude name="oralis.jsp" />
+            <exclude name="procurement.jsp" />
+            <exclude name="winantivirus.jsp" />
+        </fileset>
+        <fileset dir="${bdna.build}/pl/web/client">
+            <include name="versionCheck.htm" />
+        </fileset>
+    </copy>
+
+    <!-- dist the Swing frontend install kit -->
+    <copy file="${bdna.src}/com/bdna/app/web/SwingAppClient.jnlp" tofile="${bdna.dist}/bdna_web/SwingAppClient.jnlp" />
+    <copy file="${bdna.build}/lib/app.jar" tofile="${bdna.dist}/bdna_web/bdna_app_${bdna.version}_${bdna.build.number}.jar" />
+
+    <mkdir dir="${bdna.dist}/bdna_web/temp"/>
+
+    <!-- dist the app help files -->
+    <mkdir dir="${bdna.dist}/bdna_web/apphelp"/>
+    <copy todir="${bdna.dist}/bdna_web/apphelp">
+        <fileset dir="${bdna.src}/com/bdna/app/help">
+            <include name="**" />
+        </fileset>
+    </copy>
+
+    <copy todir="${bdna.dist}/bdna_web/apphelp">
+        <fileset dir="${bdna.src}/documentation/bin/UserGuide">
+            <include name="**" />
+        </fileset>
+    </copy>
+
+    <!-- dist the app recon help files -->
+    <mkdir dir="${bdna.dist}/bdna_web/appReconHelp"/>
+    <unzip src="${bdna.src}/documentation/bin/onlinehelp/app_asset_bin.zip" dest="${bdna.dist}/bdna_web/appReconHelp" />
+
+    <!-- dist the app admin help files -->
+    <mkdir dir="${bdna.dist}/bdna_web/appAdminHelp"/>
+    <unzip src="${bdna.src}/documentation/bin/onlinehelp/app_admin_bin.zip" dest="${bdna.dist}/bdna_web/appAdminHelp" />
+
+    <!-- dist the scripts -->
+    <copy todir="${bdna.dist}/bin">
+        <fileset dir="${bdna.src}/ShellScripts/${os.name}">
+            <include name="**" />
+            <exclude name="dumpthread.sh" />
+            <exclude name="finishinstall.sh" />
+            <exclude name="in.fingerd.ssh_login_verification" />
+            <exclude name="killbdna.sh" />
+        </fileset>
+    </copy>
+
+    <copy todir="${bdna.dist}/pso">
+        <fileset dir="${bdna.src}/pso/dist">
+            <include name="**" />
+        </fileset>
+    </copy>
+
+    <!-- make a copy of dumpthread.sh to scripts control -->
+    <copy todir="${bdna.dist}/scripts/control">
+        <fileset dir="${bdna.src}/ShellScripts/${os.name}">
+            <include name="dumpthread.sh" />
+        </fileset>
+    </copy>
+
+    <copy todir="${bdna.dist}/examples/">
+        <fileset dir="${bdna.src}/examples">
+             <include name="**" />
+        </fileset>
+    </copy>
+
+    <copy todir="${bdna.dist}/install/">
+            <fileset dir="${bdna.src}/install/">
+             <include name="**" />
+        </fileset>
+    </copy>
+
+    <!-- Dist the war file for the clm axis web app -->
+    <unwar src="${bdna.build}/lib/clmService.war" dest="${bdna.dist}/clmService/webapps/axis"/>
+    <mkdir dir="${bdna.dist}/clmService/webapps/axis/WEB-INF/attachments"/>
+    <copy file="${bdna.src}/com/bdna/clm/service/server.xml" todir="${bdna.dist}/clmService/conf"/>
+
+    <!-- Dist the Tomcat binaries for the clm -->
+    <copy todir="${bdna.dist}/nih/Tomcat/${clm.tomcat.instance}">
+        <fileset dir="${bdna.build}/nih/Tomcat/${clm.tomcat.instance}">
+            <include name="**/bin/**"/>
+            <include name="**/common/**"/>
+            <include name="**/server/**"/>
+            <include name="**/shared/**"/>
+        </fileset>
+    </copy>
+    <copy file="${bdna.build}/nih/Tomcat/${clm.tomcat.instance}/conf/web.xml" todir="${bdna.dist}/clmService/conf"/>
+    <copy file="${bdna.src}/com/bdna/clm/service/server.xml" todir="${bdna.dist}/clmService/conf"/>
+    <copy file="${bdna.src}/nih/${clm.axis.instance}/j2ee.jar" todir="${bdna.dist}/nih/Tomcat/${clm.tomcat.instance}/common/lib"/>
+    <copy file="${bdna.src}/nih/JavaMail/mail.jar" todir="${bdna.dist}/nih/Tomcat/${clm.tomcat.instance}/common/lib"/>
+    <copy file="${bdna.src}/nih/JBAF/activation.jar" todir="${bdna.dist}/nih/Tomcat/${clm.tomcat.instance}/common/lib"/>
+
+    <!-- Deploy CTSService web service -->
+    <copy file="${bdna.src}/com/bdna/cts/service/web.xml" todir="${bdna.dist}/ctsService/webapps/axis/WEB-INF"/>
+    <copy file="${bdna.src}/com/bdna/cts/service/server-config.wsdd" todir="${bdna.dist}/ctsService/webapps/axis/WEB-INF"/>
+    
+    <!-- Deploy rsService web service -->
+    <copy file="${bdna.src}/com/bdna/pl/servlet/service/web.xml" todir="${bdna.dist}/rsService/webapps/axis/WEB-INF"/>
+    <copy file="${bdna.src}/com/bdna/pl/servlet/service/server-config.wsdd" todir="${bdna.dist}/rsService/webapps/axis/WEB-INF"/>
+    
+    <!-- do tomcat 6.0.32 -->
+    <unzip src="${bdna.src}/nih/Tomcat/${rs.tomcat.instance}.zip" dest="${bdna.dist}/nih/Tomcat" />
+
+    <!-- copy the cmdb xsi files -->
+    <copy todir="${bdna.dist}/content/cmdb/IBM/XSIProject/com/bdna/external/ibmcmdb">
+        <fileset dir="${bdna.src}/content/external/IBMCMDB/XSIProject/com/bdna/external/ibmcmdb" includes="*.xml" />
+    </copy>
+
+    <!-- copy the BMCCMDB extenal adapter files (defaultexcludes remove CVS) -->
+    <copy todir="${bdna.dist}/content/cmdb/BMC/BDNA_BMC_XSIProject">
+        <fileset dir="${bdna.src}/content/external/BMCCMDB/BDNA_BMC_XSIProject" >
+            <exclude name="**/BMCCMDBProject_NoWAR_NoUNIXPackages.xml"/>
+        </fileset>
+    </copy>
+    <copy todir="${bdna.dist}/content/cmdb/BMC/BDNA_BMC_XSIProject_NoWAR_NoUNIXPackages">
+        <fileset dir="${bdna.src}/content/external/BMCCMDB/BDNA_BMC_XSIProject" >
+            <exclude name="**/BMCCMDBProject.xml"/>
+        </fileset>
+    </copy>
+    <copy todir="${bdna.dist}/content/cmdb/BMC/BDNA_BMCCMDB_Accelerator">
+        <fileset dir="${bdna.src}/content/external/BMCCMDB/BDNA_BMCCMDB_Accelerator" />
+    </copy>
+    <copy file="${bdna.build}/lib/bdna-bmccmdb.jar" todir="${bdna.dist}/content/cmdb/BMC/BDNA_BMCCMDB_Accelerator/lib" />
+
+    <!-- copy the ERI project files -->
+    <!-- Removing as they are now automatically generated
+    <copy todir="${bdna.dist}/content/cmdb/BDNAERI/ERIProject/com/bdna/external/bdnaeri">
+        <fileset dir="${bdna.src}/content/external/BDNAERI/ERIProject/com/bdna/external/bdnaeri" includes="*.xml" />
+    </copy>
+    -->
+
+    <!-- copy warranty.xml -->
+    <copy file="${bdna.src}/com/bdna/app/otherxml/Warranty.xml" todir="${bdna.dist}/content/warranty/com/bdna/app"/>
+
+     <!-- Copy PerlCS and MbusClient to lib -->
+    <copy file="${bdna.src}/scripts/CLE/Perl/bin/PerlCS/PerlCS.pl" todir="${bdna.dist}/lib" />
+    <copy file="${bdna.src}/scripts/CLE/Perl/bin/PerlCS/PerlCSChild.pl" todir="${bdna.dist}/lib" />
+    <copy file="${bdna.src}/scripts/CLE/Perl/bin/PerlCS/PerlCSMbusClient.pl" todir="${bdna.dist}/lib" />
+    <copy file="${bdna.src}/scripts/CLE/Perl/Modules/MbusClient/MbusClient.pm" todir="${bdna.dist}/lib" />
+
+    <!-- precompile any jsp under bdna_web -->
+    <mkdir dir="${bdna.dist}/nih/Tomcat/${rs.tomcat.instance}/work"/>
+    <mkdir dir="${bdna.dist}/nih/Tomcat/${rs.tomcat.instance}/work/Standalone"/>
+    <mkdir dir="${bdna.dist}/nih/Tomcat/${rs.tomcat.instance}/work/Standalone/localhost"/>
+    <mkdir dir="${bdna.dist}/nih/Tomcat/${rs.tomcat.instance}/work/Standalone/localhost/bdna"/>
+    <mkdir dir="${bdna.dist}/nih/Tomcat/${rs.tomcat.instance}/work/Standalone/localhost/bdna/org"/>
+    <mkdir dir="${bdna.dist}/nih/Tomcat/${rs.tomcat.instance}/work/Standalone/localhost/bdna/org/apache"/>
+    <mkdir dir="${bdna.dist}/nih/Tomcat/${rs.tomcat.instance}/work/Standalone/localhost/bdna/org/apache/jsp"/>
+
+    <taskdef classname="org.apache.jasper.JspC" name="jasper2" >
+          <classpath id="jspc.classpath">
+            <pathelement location="${bdna.dist}/lib/tools.jar"/>
+            <fileset dir="${bdna.dist}/nih/Tomcat/${rs.tomcat.instance}/lib">
+              <include name="*.jar"/>
+            </fileset>
+            <fileset dir="${bdna.dist}/nih/Tomcat/${rs.tomcat.instance}/common/lib">
+              <include name="*.jar"/>
+            </fileset>
+          </classpath>
+    </taskdef>
+
+    <jasper2
+         package="org.apache.jsp"
+         validateXml="false"
+         uriroot="${bdna.dist}/bdna_web"
+         webXmlFragment="${bdna.dist}/bdna_web/WEB-INF/generated_web.xml"
+         outputDir="${bdna.dist}/nih/Tomcat/${rs.tomcat.instance}/work/Standalone/localhost/bdna/org/apache/jsp" />
+    <javac
+          srcdir="${bdna.dist}/nih/Tomcat/${rs.tomcat.instance}/work/Standalone/localhost/bdna/org/apache/jsp"
+          includes="**"
+          destdir="${bdna.dist}/nih/Tomcat/${rs.tomcat.instance}/work/Standalone/localhost/bdna"
+          classpathref="jsp.classpath"
+          failonerror="true"
+          verbose="${verbose}"
+          debug="${debug}"
+          optimize="${optimize}"
+          fork="true"
+          memoryMaximumSize="256M"
+          source="1.5">
+   </javac>
+</target>
+
+<!--                                                        -->
+<!--            Make the install kit                        -->
+<!--                                                        -->
+
+<target name="installkit" depends="init">
+    <delete file="${bdna.nightly_builds.this_build}/bdna_platform_${bdna.version}_${bdna.build.number}.jar"/>
+    <delete file="${bdna.nightly_builds}/bdna_platform_latest.jar"/>
+    <delete file="${bdna.nightly_builds}/bdna_latest.jar"/>
+    <replace file="${bdna.dist}/conf/bdna.Linux.properties" token="BDNA_VERSION" value="${bdna.version}" />
+    <replace file="${bdna.dist}/conf/bdna.Linux.properties" token="BDNA_BUILD_DATE" value="${bdna.build.stamp}" />
+    <replace file="${bdna.dist}/conf/bdna.Linux.properties" token="BDNA_BUILD_NUMBER" value="${bdna.build.number}" />
+    <replace file="${bdna.dist}/conf/bdna.Linux.properties" token="BDNA_INSTALLKIT" value="${bdna.installkit}" />
+    <replace file="${bdna.dist}/conf/bdna.Linux.properties" token="BDNA_RELEASE" value="${bdna.release}" />
+    <replace file="${bdna.dist}/conf/bdna.Linux.properties" token="BDNA_SUPPORTED_JRE" value="${bdna.supportedJRE}" />
+    <replace file="${bdna.dist}/conf/bdna.Windows XP.properties" token="BDNA_VERSION" value="${bdna.version}" />
+    <replace file="${bdna.dist}/conf/bdna.Windows XP.properties" token="BDNA_BUILD_DATE" value="${bdna.build.stamp}" />
+    <replace file="${bdna.dist}/conf/bdna.Windows XP.properties" token="BDNA_BUILD_NUMBER" value="${bdna.build.number}" />
+    <replace file="${bdna.dist}/conf/bdna.Windows XP.properties" token="BDNA_INSTALLKIT" value="${bdna.installkit}" />
+    <replace file="${bdna.dist}/conf/bdna.Windows XP.properties" token="BDNA_RELEASE" value="${bdna.release}" />
+    <replace file="${bdna.dist}/conf/bdna.Windows XP.properties" token="BDNA_SUPPORTED_JRE" value="${bdna.supportedJRE}" />
+    <replace file="${bdna.dist}/conf/bdna.Windows 2003.properties" token="BDNA_VERSION" value="${bdna.version}" />
+    <replace file="${bdna.dist}/conf/bdna.Windows 2003.properties" token="BDNA_BUILD_DATE" value="${bdna.build.stamp}" />
+    <replace file="${bdna.dist}/conf/bdna.Windows 2003.properties" token="BDNA_BUILD_NUMBER" value="${bdna.build.number}" />
+    <replace file="${bdna.dist}/conf/bdna.Windows 2003.properties" token="BDNA_INSTALLKIT" value="${bdna.installkit}" />
+    <replace file="${bdna.dist}/conf/bdna.Windows 2003.properties" token="BDNA_RELEASE" value="${bdna.release}" />
+    <replace file="${bdna.dist}/conf/bdna.Windows 2003.properties" token="BDNA_SUPPORTED_JRE" value="${bdna.supportedJRE}" />
+    <jar
+        jarfile="${bdna.nightly_builds.this_build}/bdna_platform_${bdna.version}_${bdna.build.number}_${bdna.build.jar.stamp}.jar"
+        basedir="${bdna.dist}" >
+        <manifest>
+            <attribute name="Built-By" value="${user.name}"/>
+            <section name="common">
+              <attribute name="BDNA_PLATFORM_VERSION" value="${bdna.version}"/>
+              <attribute name="BDNA_PLATFORM_BUILD_DATE" value="${bdna.build.stamp}"/>
+              <attribute name="BDNA_PLATFORM_BUILD_NUMBER" value="${bdna.build.number}"/>
+              <attribute name="BDNA_PLATFORM_INSTALLKIT" value="${bdna.installkit}"/>
+              <attribute name="BDNA_PLATFORM_RELEASE" value="${bdna.release}"/>
+            </section>
+            <section name="common/class1.class">
+              <attribute name="Sealed" value="false"/>
+            </section>
+          </manifest>
+    </jar>
+    <copy file="${bdna.nightly_builds.this_build}/bdna_platform_${bdna.version}_${bdna.build.number}_${bdna.build.jar.stamp}.jar" tofile="${bdna.nightly_builds}/bdna_platform_latest.jar" />
+    <copy file="${bdna.build}/lib/bdna.jar" tofile="${bdna.nightly_builds}/bdna_latest.jar" />
+    <copy todir="${bdna.nightly_builds}" overwrite="true" >
+      <fileset dir="${bdna.build}/doc"/>
+    </copy>
+</target>
+<!--                                                        -->
+<!--            Install and run regression tests            -->
+<!--                                                        -->
+
+<target name="install_platform" depends="init">
+    <mkdir dir="${bdna.install}" />
+    <exec dir="${bdna.install}"
+          os="Linux"
+          executable="/bin/chmod">
+          <arg line="+w -R ${bdna.install}/modules" />  
+    </exec>  
+    <exec dir="${bdna.install}"
+          os="Linux"
+          executable="/bin/chmod">
+          <arg line="+w -R ${bdna.install}/appframe/com" />
+    </exec>
+    <exec dir="${bdna.install}"
+          os="Linux"
+          executable="/bin/chmod">
+          <arg line="+w -R ${bdna.install}/presentation" />
+    </exec>
+    <exec dir="${bdna.install}"
+          os="Linux"
+          executable="/bin/chmod">
+          <arg line="+w -R ${bdna.install}/appdata" />
+    </exec>
+    <exec dir="${bdna.install}"
+          os="Linux"
+          executable="/bin/chmod">
+          <arg line="+w -R ${bdna.install}/content" />
+    </exec>
+    <delete dir="${bdna.install}" />
+    <mkdir dir="${bdna.install}" />
+    <unjar src="${bdna.nightly_builds}/bdna_platform_latest.jar" dest="${bdna.install}" />
+    <exec dir="${bdna.install}/nih/jdk/bin"
+          os="Linux"
+          executable="/bin/chmod">
+          <arg line="-R +x ." />
+     </exec>
+    <exec dir="${bdna.install}/nih/jdk/jre/bin"
+          os="Linux"
+          executable="/bin/chmod">
+          <arg line="-R +x ." />
+    </exec>
+    <exec dir="${bdna.install}/nih/SAP"
+          os="Linux"
+          executable="/bin/chmod">
+          <arg line="+x SAPSolmanCredentialVerifier SAPSolmanDataCollector" />
+    </exec>
+</target>
+
+<target name="install" depends="init, install_platform" />
+
+<!--                                                        -->
+<!-- Clean up the test install dir and the test web folder  -->
+<!--                                                        -->
+<target name="init_test" depends="init">
+
+    <!-- re-create test working directories -->
+    <delete dir="${bdna.install}/test"/>
+    <mkdir dir="${bdna.install}/test"/>
+    <mkdir dir="${bdna.install}/test/logs"/>
+
+    <!-- don't clean the nightly build dir since it is used by multiple test types -->
+    <!-- create only if not exists -->
+    <mkdir dir="${bdna.nightly_builds.this_build}/test"/>
+    <mkdir dir="${bdna.nightly_builds.this_build}/test/logs"/>
+    <mkdir dir="${bdna.nightly_builds.this_build}/test/html"/>
+    <copy todir="${bdna.install}/conf">
+        <fileset dir="${bdna.src}/conf" includes="bit.xml" />
+    </copy>
+
+    <!-- copy the test classes -->
+    <copy todir="${bdna.install}">
+        <fileset dir="${bdna.build}/debug/classes" includes="**/benchmark/*.class" />
+        <fileset dir="${bdna.build}/debug/classes" includes="Sample*.class" />
+        <fileset dir="${bdna.build}/debug/classes" includes="**/junit/*.class" />
+        <fileset dir="${bdna.build}/debug/classes" includes="**/mbus/testing/*.class" />
+        <fileset dir="${bdna.src}" includes="**/benchmark/*.xml,**/benchmark/*.pl" />
+        <fileset dir="${bdna.src}" includes="**/junit/*.xml, **/junit/*.pl, **/junit/*.txt" />
+    </copy>
+    <copy todir="${bdna.install}/test">
+        <fileset dir="${bdna.src}/schema" includes="bdnaSample.xml" />
+    </copy>
+
+    <copy file="${bdna.src}/com/bdna/junit/bit.properties" todir="${bdna.install}/conf"/>
+    <copy todir="${bdna.install}/conf">
+        <fileset dir="${bdna.src}/com/bdna/junit" includes="BIT*.txt" />
+    </copy>
+
+    <!-- initialize the oracle schema -->
+    <exec
+        executable="${oracle.home}/bin/sqlplus"
+        dir="${bdna.install}/sql/oracle"
+        failonerror="false"
+        output="${bdna.install}/test/logs/upgrade_user.log" >
+       <arg line="-L system/n1mda345@${bdna.dbServer} @${bdna.install}/sql/oracle/upgrade_user.sql ${bdna.dbUser}" />
+    </exec>
+    <exec
+        executable="${oracle.home}/bin/sqlplus"
+        dir="${bdna.install}/sql/oracle"
+        failonerror="false"
+        output="${bdna.install}/test/logs/ddl_oracle.log" >
+       <arg line="-L ${bdna.dbUser}/${bdna.dbPassword}@${bdna.dbServer} @${bdna.install}/sql/oracle/ddl.sql ${bdna.test.oracle.temptablespace} ${bdna.test.oracle.edition}" />
+    </exec>
+    <exec
+        executable="${oracle.home}/bin/sqlplus"
+        dir="${bdna.install}/sql/oracle"
+        failonerror="false"
+        output="${bdna.install}/test/logs/ddl_oracle_platform.log" >
+       <arg line="-L ${bdna.dbUser}/${bdna.dbPassword}@${bdna.dbServer} @${bdna.install}/sql/oracle/${platformpkg.filename} ${bdna.test.oracle.temptablespace}" />
+    </exec>
+
+</target>
+
+
+<target name="integration_test" depends="init_test, init">
+    <!--
+        "bit.verifyInterval" specifies number of minutes between checks.
+        "bit.expectedCount" specifies number of cycles BIT is expected to finish in.
+        "bit.verifyCount" is the maximum number of cycles BIT is allowed to run.
+        Each cycle is an expensive query; DO NOT perform it frequently, ideal is >5.
+    -->
+    <!--
+        To compensate for different hardware platform performance of
+        different nightly build servers, these property values are
+        being set in $HOME/.antrc on some servers.  On those servers,
+        ant will warn that the property settings below are overrides
+        which are going to be ignored; the warnings can be ignored.
+    -->
+    <property name="bit.verifyCount" value="60" />
+    <property name="bit.expectedCount" value="40" />
+    <property name="bit.verifyInterval" value="6" />
+    <property name="bit.retryableCollectionResultCodes" value="1,8,10,11,36,55" />
+    <property name="bit.maxCollectionRetries" value="3" />
+
+    <junit printsummary="withOutAndErr" fork="yes" maxmemory="768m" dir="${bdna.install}" haltonfailure="no">
+        <classpath refid="test.classpath" />
+        <sysproperty key="bdna.home" value="${bdna.install}"/>
+        <sysproperty key="bdna.test.dir" value="${bdna.install}/test"/>
+        <sysproperty key="java.library.path" value="${bdna.install}/bin${path.separator}${oracle.home}/bin${path.separator}${oracle.home}/lib"/>
+        <sysproperty key="bit.verifyCount" value="${bit.verifyCount}" />
+        <sysproperty key="bit.expectedCount" value="${bit.expectedCount}" />
+        <sysproperty key="bit.verifyInterval" value="${bit.verifyInterval}" />
+        <sysproperty key="bit.retryableCollectionResultCodes" value="${bit.retryableCollectionResultCodes}" />
+        <sysproperty key="bit.maxCollectionRetries" value="${bit.maxCollectionRetries}" />
+        <sysproperty key="bdna.control.DEBUG" value="true" />
+        <sysproperty key="bdna.os.name" value="${os.name}" />
+
+        <env key="CATALINA_HOME" value="${bdna.install}/nih/Tomcat/${rs.tomcat.instance}" />
+        <env key="PERL5LIB" value="${bdna.install}/nih/Perl/Modules:${bdna.install}/scripts/CLE/Perl/Modules:${bdna.install}/lib" />
+        <jvmarg value="-Xmx512M"/>
+        <jvmarg value="-Xdebug"/>
+        <jvmarg value="-Xnoagent"/>
+        <jvmarg value="-Xrunjdwp:transport=dt_socket,address=8020,server=y,suspend=n"/>
+
+        <!-- set usefile to false to not send stdout to the xml file -->
+        <formatter type="xml" />
+
+        <test name="com.bdna.junit.BackendIntegrationTest" haltonfailure="no"
+              todir="${bdna.install}/test/logs" outfile="BackendIntegrationTests" />
+        <!-- <test name="com.bdna.junit.AppFrameworkTest" haltonfailure="no"
+                        todir="${bdna.install}/test/logs" outfile="AppFrameworkTest" /> -->
+        <!-- <test name="com.bdna.junit.AMConsistencyTest" haltonfailure="no"
+                        todir="${bdna.install}/test/logs" outfile="AMConsistencyTest" /> -->
+        <!--<test name="com.bdna.junit.RSTest" haltonfailure="no"
+                        todir="${bdna.install}/test/logs" outfile="RSTest" />-->
+    </junit>
+
+    <junitreport todir="${bdna.install}/test/logs" tofile="BACKEND.xml">
+        <fileset dir="${bdna.install}/test/logs">
+            <include name="BackendIntegrationTests.xml"/>
+            <!-- <include name="AMConsistencyTest.xml"/> -->
+            <!--<include name="AppFrameworkTest.xml"/>-->
+            <!--<include name="RSTest.xml"/>-->
+        </fileset>
+        <report format="frames" todir="${bdna.nightly_builds.this_build}/test/backend/html"/>
+    </junitreport>
+
+    <copy todir="${bdna.nightly_builds.this_build}/test/logs">
+        <fileset dir="${bdna.install}/test/logs" includes="**" />
+    </copy>
+
+<!-- Save the database and logs after the integration test is done -->
+    <exec
+       executable="sh"
+       failonerror="false">
+       <arg line="${bdna.install}/bin/checkpoint.sh ${bdna.dbUser} ${bdna.dbServer} n1mda345 ${bdna.nightly_builds.this_build}/test/integration" />
+    </exec>
+
+<!-- drop the REGRESS_COPY user first -->
+    <exec executable="sh" failonerror="false">
+       <arg line="${bdna.src}/build/drop.sh ${bdna.dbServer} REGRESS_COPY" />
+    </exec>
+
+<!-- import the database to REGRESS_COPY -->
+    <exec
+       executable="imp"
+       failonerror="false">
+       <arg line="system/n1mda345@${bdna.dbServer} file=${bdna.nightly_builds.this_build}/test/integration/${bdna.dbUser}.export fromuser=${bdna.dbUser} touser=REGRESS_COPY" />
+    </exec>
+
+    <exec
+       executable="/bin/rm"
+       failonerror="false">
+       <arg line="-rf ${bdna.install}/logs.integration" />
+    </exec>
+    <exec
+       executable="/bin/mv"
+       failonerror="false">
+       <arg line="${bdna.install}/logs ${bdna.install}/logs.integration" />
+    </exec>
+    <mkdir dir="${bdna.install}/logs" />
+
+</target>
+
+
+<target name="rule_tests">
+    <!-- misc rule engine tests -->
+    <junit printsummary="withOutAndErr" fork="yes" dir="${bdna.install}" haltonfailure="no">
+        <classpath refid="test.classpath" />
+        <sysproperty key="bdna.home" value="${bdna.install}"/>
+        <sysproperty key="bdna.test.dir" value="${bdna.install}/test"/>
+        <sysproperty key="java.library.path" value="${bdna.install}/bin${path.separator}${oracle.home}/bin${path.separator}${oracle.home}/lib"/>
+        <jvmarg value="-Xmx512M"/>
+
+        <!-- set usefile to false to not send stdout to the xml file -->
+        <formatter type="xml" />
+        <test name="com.bdna.junit.RuleEngineTests3" haltonfailure="no"
+              todir="${bdna.install}/test/logs" outfile="RuleEngineTests3" />
+    </junit>
+
+    <!-- misc rule engine tests -->
+    <junit printsummary="withOutAndErr" fork="yes" dir="${bdna.install}" haltonfailure="no">
+        <classpath refid="test.classpath" />
+        <sysproperty key="bdna.home" value="${bdna.install}"/>
+        <sysproperty key="bdna.test.dir" value="${bdna.install}/test"/>
+        <sysproperty key="java.library.path" value="${bdna.install}/bin${path.separator}${oracle.home}/bin${path.separator}${oracle.home}/lib"/>
+        <jvmarg value="-Xmx512M"/>
+        <!-- set usefile to false to not send stdout to the xml file -->
+        <formatter type="xml" />
+        <test name="com.bdna.junit.RuleEngineTests" haltonfailure="no"
+              todir="${bdna.install}/test/logs" outfile="RuleEngineTests" />
+    </junit>
+
+    <!-- generated fingerprint tests -->
+    <junit printsummary="withOutAndErr" fork="yes" dir="${bdna.install}" haltonfailure="no">
+        <classpath refid="test.classpath" />
+        <sysproperty key="bdna.home" value="${bdna.install}"/>
+        <sysproperty key="bdna.test.dir" value="${bdna.install}/test"/>
+        <sysproperty key="java.library.path" value="${bdna.install}/bin${path.separator}${oracle.home}/bin${path.separator}${oracle.home}/lib"/>
+        <jvmarg value="-Xmx512M"/>
+
+        <!-- set usefile to false to not send stdout to the xml file -->
+        <formatter type="xml" />
+        <test name="com.bdna.junit.RuleEngineTests2" haltonfailure="no"
+              todir="${bdna.install}/test/logs" outfile="RuleEngineTests2" />
+    </junit>
+
+    <!-- generated fingerprint tests -->
+    <junit printsummary="withOutAndErr" fork="yes" dir="${bdna.install}" haltonfailure="no">
+        <classpath refid="test.classpath" />
+        <sysproperty key="bdna.home" value="${bdna.install}"/>
+        <sysproperty key="bdna.test.dir" value="${bdna.install}/test"/>
+        <sysproperty key="java.library.path" value="${bdna.install}/bin${path.separator}${oracle.home}/bin${path.separator}${oracle.home}/lib"/>
+        <jvmarg value="-Xmx512M"/>
+        <!-- set usefile to false to not send stdout to the xml file -->
+        <formatter type="xml" />
+        <test name="com.bdna.junit.FingerprintTests" haltonfailure="no"
+              todir="${bdna.install}/test/logs" outfile="NMAPTest" />
+    </junit>
+
+</target>
+
+<target name="agenda_tests">
+    <junit printsummary="withOutAndErr" fork="yes" dir="${bdna.install}" haltonfailure="no" timeout="7200000" >
+        <classpath refid="test.classpath" />
+        <sysproperty key="bdna.home" value="${bdna.install}"/>
+        <sysproperty key="bdna.test.dir" value="${bdna.install}/test"/>
+        <sysproperty key="java.library.path" value="${bdna.install}/bin${path.separator}${oracle.home}/bin${path.separator}${oracle.home}/lib"/>
+        <jvmarg value="-Xmx512M"/>
+        <formatter type="xml" />
+        <test name="com.bdna.junit.AgendaTest" haltonfailure="no"
+                        todir="${bdna.install}/test/logs" outfile="AgendaTest" />
+    </junit>
+    <junit printsummary="withOutAndErr" fork="yes" dir="${bdna.install}" haltonfailure="no" timeout="7200000" >
+        <classpath refid="test.classpath" />
+        <sysproperty key="bdna.home" value="${bdna.install}"/>
+        <sysproperty key="bdna.test.dir" value="${bdna.install}/test"/>
+        <sysproperty key="java.library.path" value="${bdna.install}/bin${path.separator}${oracle.home}/bin${path.separator}${oracle.home}/lib"/>
+        <jvmarg value="-Xmx512M"/>
+        <formatter type="xml" />
+        <test name="com.bdna.junit.AgendaTestII" haltonfailure="no"
+                        todir="${bdna.install}/test/logs" outfile="AgendaTestII" />
+    </junit>
+
+</target>
+
+<target name="emma" >
+  <property name="emma.enabled" value="true" />
+  <property name="out.instr.dir" value="${bdna.src}/lib/outinstr" />
+  <property name="coverage.dir" value="${bdna.install}/test/codeCoverage" />
+  <delete dir="${out.instr.dir}" verbose="false" />
+  <delete dir="${coverage.dir}"  verbose="false" />
+  <mkdir dir="${out.instr.dir}" />
+  <mkdir dir="${coverage.dir}" />
+</target>
+
+<target name="amCoverage" depends="emma">
+    <emma enabled="${emma.enabled}" >
+      <instr instrpathref="test.classpath"
+             destdir="${out.instr.dir}"
+             metadatafile="${coverage.dir}/amMetadata.emma"
+             merge="true">
+            <filter value="+com.bdna.agenda.*" />
+            <filter value="+com.bdna.si.db.* +com.bdna.si.common.* +com.bdna.si.metadata.*" />
+            <filter value="-com.bdna.si.db.DBagenda com.bdna.si.db.DBApp -com.bdna.si.db.DBAttributeSet" />
+            <filter value="-com.bdna.si.db.DBLog -com.bdna.si.db.DBModule" />
+            <filter value="+com.bdna.ut.common.DateStr +com.bdna.ut.common.IdPair" />
+            <filter value="+com.bdna.ut.common.StopWatch +com.bdna.ut.common.XmlPrt" />
+            <filter value="+com.bdna.ut.common.xmlsax.*" />
+      </instr>
+    </emma>
+
+    <java
+        classname="com.bdna.agenda.junit.CalendarFutureMgrTest"
+        fork="yes">
+        <classpath>
+            <pathelement location="${out.instr.dir}" />
+            <path refid="test.classpath"/>
+            <path refid="emma.lib" />
+        </classpath>
+        <sysproperty key="bdna.home" value="${bdna.install}"/>
+        <jvmarg value="-Xmx512M"/>
+        <jvmarg value="-Demma.coverage.out.file=${coverage.dir}/CalendarFutureMgrTest.emma" />
+        <jvmarg value="-Demma.coverage.out.merge=false" />
+    </java>
+
+    <java
+        classname="com.bdna.agenda.junit.DBAMAggrTest"
+        fork="yes">
+        <classpath>
+            <pathelement location="${out.instr.dir}" />
+            <path refid="test.classpath"/>
+            <path refid="emma.lib" />
+        </classpath>
+        <sysproperty key="bdna.home" value="${bdna.install}"/>
+        <jvmarg value="-Xmx512M"/>
+        <jvmarg value="-Demma.coverage.out.file=${coverage.dir}/DBAMAggrTest.emma" />
+        <jvmarg value="-Demma.coverage.out.merge=false" />
+<!--
+        <arg value="testDBAMAggrWinDbAggregation" />
+-->
+    </java>
+
+    <java
+        classname="com.bdna.agenda.junit.DBAMCalendarPerfTest"
+        fork="yes">
+        <classpath>
+            <pathelement location="${out.instr.dir}" />
+            <path refid="test.classpath"/>
+            <path refid="emma.lib" />
+        </classpath>
+        <sysproperty key="bdna.home" value="${bdna.install}"/>
+        <jvmarg value="-Xmx512M"/>
+        <jvmarg value="-Demma.coverage.out.file=${coverage.dir}/DBAMCalendarPerfTest.emma" />
+        <jvmarg value="-Demma.coverage.out.merge=false" />
+<!--
+        <arg value="testDBAMCalendarPerf" />
+-->
+    </java>
+
+    <java
+        classname="com.bdna.agenda.junit.DBAMCalendarTest"
+        fork="yes">
+        <classpath>
+            <pathelement location="${out.instr.dir}" />
+            <path refid="test.classpath"/>
+            <path refid="emma.lib" />
+        </classpath>
+        <sysproperty key="bdna.home" value="${bdna.install}"/>
+        <jvmarg value="-Xmx512M"/>
+        <jvmarg value="-Demma.coverage.out.file=${coverage.dir}/DBAMCalendarTest.emma" />
+        <jvmarg value="-Demma.coverage.out.merge=false" />
+<!--
+        <arg value="testDBAMCalendarSimple" />
+-->
+    </java>
+
+    <java
+        classname="com.bdna.agenda.junit.DBAMCredentialSetTest"
+        fork="yes">
+        <classpath>
+            <pathelement location="${out.instr.dir}" />
+            <path refid="test.classpath"/>
+            <path refid="emma.lib" />
+        </classpath>
+        <sysproperty key="bdna.home" value="${bdna.install}"/>
+        <jvmarg value="-Xmx512M"/>
+        <jvmarg value="-Demma.coverage.out.file=${coverage.dir}/DBAMCredentialSetTest.emma" />
+        <jvmarg value="-Demma.coverage.out.merge=false" />
+<!--
+        <arg value="testDBAMCredentialSetCsSimple" />
+-->
+    </java>
+
+    <java
+        classname="com.bdna.agenda.junit.DBAMEventTest"
+        fork="yes">
+        <classpath>
+            <pathelement location="${out.instr.dir}" />
+            <path refid="test.classpath"/>
+            <path refid="emma.lib" />
+        </classpath>
+        <sysproperty key="bdna.home" value="${bdna.install}"/>
+        <jvmarg value="-Xmx512M"/>
+        <jvmarg value="-Demma.coverage.out.file=${coverage.dir}/DBAMEventTest.emma" />
+        <jvmarg value="-Demma.coverage.out.merge=false" />
+<!--
+        <arg value="testGUIDs" />
+-->
+    </java>
+
+    <java
+        classname="com.bdna.agenda.junit.DBAMScriptArgsTest"
+        fork="yes">
+        <classpath>
+            <pathelement location="${out.instr.dir}" />
+            <path refid="test.classpath"/>
+            <path refid="emma.lib" />
+        </classpath>
+        <sysproperty key="bdna.home" value="${bdna.install}"/>
+        <jvmarg value="-Xmx512M"/>
+        <jvmarg value="-Demma.coverage.out.file=${coverage.dir}/DBAMScriptArgsTest.emma" />
+        <jvmarg value="-Demma.coverage.out.merge=false" />
+<!--
+        <arg value="testDBAMScriptArgsSimple" />
+-->
+    </java>
+
+    <java
+        classname="com.bdna.agenda.junit.DBAMTaskTest"
+        fork="yes">
+        <classpath>
+            <pathelement location="${out.instr.dir}" />
+            <path refid="test.classpath"/>
+            <path refid="emma.lib" />
+        </classpath>
+        <sysproperty key="bdna.home" value="${bdna.install}"/>
+        <jvmarg value="-Xmx512M"/>
+        <jvmarg value="-Demma.coverage.out.file=${coverage.dir}/DBAMTaskTest.emma" />
+        <jvmarg value="-Demma.coverage.out.merge=false" />
+<!--
+        <arg value="testDBAMTaskBug7351" />
+-->
+    </java>
+
+    <java
+        classname="com.bdna.agenda.junit.ElemMgrTest"
+        fork="yes">
+        <classpath>
+            <pathelement location="${out.instr.dir}" />
+            <path refid="test.classpath"/>
+            <path refid="emma.lib" />
+        </classpath>
+        <sysproperty key="bdna.home" value="${bdna.install}"/>
+        <jvmarg value="-Xmx512M"/>
+        <jvmarg value="-Demma.coverage.out.file=${coverage.dir}/ElemMgrTest.emma" />
+        <jvmarg value="-Demma.coverage.out.merge=false" />
+<!--
+        <arg value="testElemMgrSimple" />
+-->
+    </java>
+
+    <java
+        classname="com.bdna.agenda.junit.LsCalToIpRangeTest"
+        fork="yes">
+        <classpath>
+            <pathelement location="${out.instr.dir}" />
+            <path refid="test.classpath"/>
+            <path refid="emma.lib" />
+        </classpath>
+        <sysproperty key="bdna.home" value="${bdna.install}"/>
+        <jvmarg value="-Xmx512M"/>
+        <jvmarg value="-Demma.coverage.out.file=${coverage.dir}/LsCalToIpRangeTest.emma" />
+        <jvmarg value="-Demma.coverage.out.merge=false" />
+    </java>
+
+    <java
+        classname="com.bdna.agenda.util.junit.StatsTest"
+        fork="yes">
+        <classpath>
+            <pathelement location="${out.instr.dir}" />
+            <path refid="test.classpath"/>
+            <path refid="emma.lib" />
+        </classpath>
+        <sysproperty key="bdna.home" value="${bdna.install}"/>
+        <jvmarg value="-Xmx512M"/>
+        <jvmarg value="-Demma.coverage.out.file=${coverage.dir}/StatsTest.emma" />
+        <jvmarg value="-Demma.coverage.out.merge=false" />
+    </java>
+
+    <java
+        classname="com.bdna.agenda.junit.XmlPrtTest"
+        fork="yes">
+        <classpath>
+            <pathelement location="${out.instr.dir}" />
+            <path refid="test.classpath"/>
+            <path refid="emma.lib" />
+        </classpath>
+        <sysproperty key="bdna.home" value="${bdna.install}"/>
+        <jvmarg value="-Xmx512M"/>
+        <jvmarg value="-Demma.coverage.out.file=${coverage.dir}/XmlPrtTest.emma" />
+        <jvmarg value="-Demma.coverage.out.merge=false" />
+    </java>
+
+    <emma enabled="${emma.enabled}" >
+      <report sourcepath="${bdna.src}" >
+        <fileset dir="${coverage.dir}" >
+          <include name="*.emma" />
+        </fileset>
+        <txt outfile="${coverage.dir}/amCoverage.txt" />
+        <html outfile="${coverage.dir}/amCoverage.html" />
+      </report>
+    </emma>
+</target>
+
+<target name="no_jit_vm_tests">
+
+    <!-- for crap that needs it: some problem with Glue/Linux, when it comes to restarting http server in same vm -->
+    <junit printsummary="withOutAndErr" fork="yes" dir="${bdna.install}" haltonfailure="no" timeout="2700000" >
+        <classpath refid="test.classpath" />
+        <sysproperty key="bdna.home" value="${bdna.install}"/>
+        <sysproperty key="bdna.test.dir" value="${bdna.install}/test"/>
+        <sysproperty key="java.library.path" value="${bdna.install}/bin${path.separator}${oracle.home}/bin${path.separator}${oracle.home}/lib"/>
+        <sysproperty key="java.compiler" value="NONE" />
+        <!-- set usefile to false to not send stdout to the xml file -->
+        <formatter type="xml" />
+
+        <test name="com.bdna.junit.MBusTests" haltonfailure="no"
+                        todir="${bdna.install}/test/logs" outfile="MBusTests" />
+    </junit>
+
+</target>
+
+
+<!--                                                        -->
+<!--            Misc targets for development purposes       -->
+<!--                                                        -->
+<target name="dist_to_src" depends="prep_src, prep_build, dist_to_src_first_stage, dist_to_src_UNIX, makecql, java, cql, sql">
+
+    <copy todir="${bdna.src}/bin">
+        <fileset dir="${bdna.src}/ShellScripts/${os.name}">
+            <include name="**" />
+        </fileset>
+    </copy>
+
+    <copy todir="${bdna.src}/sql">
+        <fileset dir="${bdna.src}/schema" includes="**/*.sql,**/*.dmp" />
+        <fileset dir="${bdna.build}/sql" includes="**/*.sql" />
+    </copy>
+
+    <copy todir="${bdna.src}/conf">
+        <fileset dir="${bdna.src}/schema">
+            <include name="bdna.dtd" />
+        </fileset>
+    </copy>
+
+    <copy todir="${bdna.src}/test">
+        <fileset dir="${bdna.src}/schema" includes="bdnaSample.xml" />
+    </copy>
+
+    <copy todir="${bdna.src}/bdna_web">
+         <fileset dir="${bdna.src}/pl/web/client">
+             <include name="**" />
+             <exclude name="versionCheck.htm" />
+         </fileset>
+         <fileset dir="${bdna.build}/pl/web/client">
+             <include name="versionCheck.htm" />
+         </fileset>
+    </copy>
+</target>
+
+<!-- make the src dir a valid bdna home -->
+<target name="dist_to_src_first_stage" depends="init">
+    <delete dir="${bdna.src}/test" />
+    <delete dir="${bdna.src}/sql" />
+    <delete dir="${bdna.src}/bin" />
+    <delete dir="${bdna.src}/logs" />
+    <delete dir="${bdna.src}/temp" />
+    <delete dir="${bdna.src}/file_store" />
+    <delete dir="${bdna.src}/cts_file_store" />
+    <delete dir="${bdna.src}/lib/classes" />
+    <delete dir="${bdna.src}/sccache" />
+    <mkdir dir="${bdna.src}/logs" />
+    <mkdir dir="${bdna.src}/temp" />
+    <mkdir dir="${bdna.src}/file_store" />
+    <mkdir dir="${bdna.src}/cts_file_store" />
+    <mkdir dir="${bdna.src}/lib"/>
+    <mkdir dir="${bdna.src}/lib/classes"/>
+    <mkdir dir="${bdna.src}/bin"/>
+    <mkdir dir="${bdna.src}/sql"/>
+    <mkdir dir="${bdna.src}/test"/>
+    <mkdir dir="${bdna.src}/sccache"/>
+
+    <copy todir="${bdna.src}/lib/classes">
+        <fileset dir="${bdna.build}/classes" includes="**/*.class" />
+    </copy>
+
+    <copy file="${bdna.src}/nih/Xerces/xercesImpl.jar" todir="${bdna.src}/lib" />
+    <copy file="${bdna.src}/nih/Xerces/xml-apis.jar" todir="${bdna.src}/lib" />
+    <copy file="${bdna.src}/nih/JUnit/junit.jar" todir="${bdna.src}/lib" />
+    <copy file="${bdna.src}/nih/oracle/ojdbc14.jar" todir="${bdna.src}/lib" />
+    <copy file="${bdna.src}/nih/oracle/xsu12.jar" todir="${bdna.src}/lib" />
+    <copy file="${bdna.src}/nih/Log4J/log4j.jar" todir="${bdna.src}/lib" />
+    <copy file="${bdna.src}/nih/SOAP/soap.jar" todir="${bdna.src}/lib" />
+    <copy file="${bdna.src}/nih/JavaMail/mail.jar" todir="${bdna.src}/lib" />
+    <copy file="${bdna.src}/nih/JBAF/activation.jar" todir="${bdna.src}/lib" />
+    <copy file="${bdna.src}/nih/Regexp/jakarta-regexp-1.2.jar" todir="${bdna.src}/lib" />
+    <copy file="${bdna.src}/nih/gnu/gnu-regexp-1.1.4.jar" todir="${bdna.src}/lib" />
+    <copy file="${bdna.src}/nih/electric/GLUE.jar" todir="${bdna.src}/lib" />
+    <copy file="${bdna.src}/nih/electric/jnet.jar" todir="${bdna.src}/lib" />
+    <copy file="${bdna.src}/nih/Tomcat/lib/servlet.jar" todir="${bdna.src}/lib" />
+    <copy file="${bdna.src}/nih/Tomcat/lib/servlet-api.jar" todir="${bdna.src}/lib" />
+    <copy file="${bdna.src}/nih/concurrent/concurrent.jar" todir="${bdna.src}/lib" />
+    <copy file="${bdna.src}/nih/Velocity/velocity-dep-1.2.jar" todir="${bdna.src}/lib" />
+    <copy file="${bdna.src}/nih/marsh/marsh.jar" todir="${bdna.src}/lib" />
+    <copy file="${bdna.src}/nih/JSSE/jsse.jar" todir="${bdna.src}/lib" />
+    <copy file="${bdna.src}/nih/Tomcat/bootstrap.jar" todir="${bdna.src}/lib" />
+    <copy file="${bdna.src}/nih/Tomcat/lib/tomcat-juli.jar" todir="${bdna.src}/lib" />
+    <copy file="${bdna.src}/nih/Tomcat/lib/catalina.jar" todir="${bdna.src}/lib" />
+    <copy file="${bdna.src}/nih/Tomcat/lib/tomcat-coyote.jar" todir="${bdna.src}/lib" />
+    <copy file="${bdna.src}/nih/Tomcat/lib/annotations-api.jar" todir="${bdna.src}/lib" />
+    <!-- caceyHotfix start --!>
+    <copy file="${bdna.src}/nih/Tomcat/lib/axis-ant.jar" todir="${bdna.src}/lib" />
+    <copy file="${bdna.src}/nih/Tomcat/lib/deploy.jar" todir="${bdna.src}/lib" />
+    <copy file="${bdna.src}/nih/Tomcat/lib/geronimo-jaspi-2.0.0.jar" todir="${bdna.src}/lib" />
+    <copy file="${bdna.src}/nih/Tomcat/lib/j2ee.jar" todir="${bdna.src}/lib" />
+    <copy file="${bdna.src}/nih/Tomcat/lib/java-cup-11a-runtime.jar" todir="${bdna.src}/lib" />
+    <copy file="${bdna.src}/nih/Tomcat/lib/javax.security.auth.message.jar" todir="${bdna.src}/lib" />
+    <copy file="${bdna.src}/nih/Tomcat/lib/jcommon-1.0.17.jar" todir="${bdna.src}/lib" />
+    <copy file="${bdna.src}/nih/Tomcat/lib/jfreechart-1.0.14.jar" todir="${bdna.src}/lib" />
+    <copy file="${bdna.src}/nih/Tomcat/lib/libovw.jar" todir="${bdna.src}/lib" />
+    <copy file="${bdna.src}/nih/Tomcat/lib/sxc-jaxb-0.7.2.jar" todir="${bdna.src}/lib" />
+    <copy file="${bdna.src}/nih/Tomcat/lib/xerces.jar" todir="${bdna.src}/lib" />
+    <!-- caceyHotfix end   --!>         
+    <copy file="${bdna.src}/nih/JSSE/jcert.jar" todir="${bdna.src}/lib" />
+    <copy file="${bdna.src}/nih/JavaCup/javacup.jar" todir="${bdna.src}/lib" />
+    <copy file="${bdna.src}/nih/JavaCup/JFlex.jar" todir="${bdna.src}/lib" />
+    <copy file="${bdna.src}/nih/axis/axis.jar" todir="${bdna.dist}/lib" />
+    <copy file="${bdna.src}/nih/axis/commons-discovery.jar" todir="${bdna.dist}/lib" />
+    <copy file="${bdna.src}/nih/axis/commons-logging.jar" todir="${bdna.dist}/lib" />
+    <copy file="${bdna.src}/nih/axis/saaj.jar" todir="${bdna.dist}/lib" />
+    <copy file="${bdna.src}/nih/axis/wsdl4j.jar" todir="${bdna.dist}/lib" />
+    <copy file="${bdna.src}/nih/axis/jaxrpc.jar" todir="${bdna.dist}/lib" />
+    <copy file="${bdna.src}/nih/JSON/JSON.jar" todir="${bdna.dist}/lib" />
+    <copy file="${bdna.src}/nih/BeanShell/bsh-1.2b8.jar" todir="${bdna.dist}/lib" />
+    <copy file="${bdna.src}/nih/xstream/xpp3_min-1.1.3.4.I.jar" todir="${bdna.dist}/lib" />
+    <copy file="${bdna.src}/nih/xstream/xstream-1.1.2.jar" todir="${bdna.dist}/lib" />
+
+    <!--Jetty related jar files-->
+    <copy file="${bdna.src}/nih/Jetty/core-3.1.1.jar" todir="${bdna.src}/lib" />
+    <copy file="${bdna.src}/nih/Jetty/jetty-6.1.5.jar" todir="${bdna.src}/lib" />
+    <copy file="${bdna.src}/nih/Jetty/jetty-util-6.1.5.jar" todir="${bdna.src}/lib" />
+    <copy file="${bdna.src}/nih/Jetty/slf4j-api-1.5.6.jar" todir="${bdna.src}/lib" />
+    <copy file="${bdna.src}/nih/Jetty/slf4j-log4j12-1.5.6.jar" todir="${bdna.src}/lib" />
+    <copy file="${bdna.src}/nih/Jetty/jsp-2.1.jar" todir="${bdna.src}/lib" />
+    <copy file="${bdna.src}/nih/Jetty/jsp-api-2.1.jar" todir="${bdna.src}/lib" />
+</target>
+
+
+
+<target name="generate_installer" depends="installkit">
+    <copy file="${bdna.nightly_builds.this_build}/bdna_platform_${bdna.version}_${bdna.build.number}_${bdna.build.jar.stamp}.jar" tofile="${bdna.build}/installer/resources/bdna_platform_${bdna.version}_${bdna.build.number}_${bdna.build.jar.stamp}.jar" />
+    <exec
+        executable="sh"
+        dir="${bdna.build}/installer"
+        output="${bdna.build}/installer/installer.log"
+        failonerror="true">
+        <arg line="build.sh -p" />
+    </exec>
+    <copy file="${bdna.build}/installer/bdna_${bdna.version}_${bdna.build.number}.installer" tofile="${bdna.nightly_builds.this_build}/bdna_${bdna.version}_${bdna.build.number}_${bdna.build.jar.stamp}.installer" />
+
+</target>
+
+</project>
