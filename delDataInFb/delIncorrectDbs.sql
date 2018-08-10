@@ -121,7 +121,7 @@ LOOP
 
              if dbCount=1 then
                  dbms_output.put_line('Deleting the wrong PDB.');
-                 execute immediate 'select element_id from TMPALLDBS where id='||csNumber||' and char_value='''||preName||'''' into dbId;
+                 execute immediate 'select element_id from TMPALLDBS where id='||csNumber||' and value='''||preName||'''' into dbId;
                  execute immediate 'CREATE OR REPLACE VIEW CTMP_CHILD_V as SELECT CHILD FROM '||containmentName||' where Parent in ('||pdbId||') and child not in (SELECT CHILD FROM '||containmentName||' where Parent in ('||dbId||'))';
                  execute immediate 'delete from '||containmentName||' WHERE PARENT IN (SELECT * FROM CTMP_CHILD_V) OR PARENT IN ('||pdbId||')';
                  execute immediate 'delete from '||containmentName||' WHERE CHILD IN ('||pdbId||')';
