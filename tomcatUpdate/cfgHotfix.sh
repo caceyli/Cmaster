@@ -1,7 +1,7 @@
 #!/bin/bash
 currDir=`pwd`
 #check BDNA version
-echo -e "Step (1/9) check BDNA version."
+echo -e "Step (1/4) check BDNA version."
 bdnaPropFile=`echo $BDNA_HOME/conf/bdna.Linux.properties`
 bdnaVersion=`eval "cat $bdnaPropFile | sed -rn "s/.*bdna.version=//gp""`
 bdnaBuildNumber=`eval "cat $bdnaPropFile | sed -rn "s/.*bdna.build.number=//gp""`
@@ -61,7 +61,7 @@ else
 fi
 
 #get BDNA configuration file for tomcat upgrade
-echo -e "Step (2/9) get BDNA configuration."
+echo -e "Step (2/4) get BDNA configuration."
 bdnaCfgFile=`echo $BDNA_HOME/bin/configure.sh`
 bdnaTomcat=`echo $BDNA_HOME/nih/Tomcat`
 oldHttpConfFile=`echo $BDNA_HOME/nih/Tomcat/$oldTomcatVersion/conf/server.xml`
@@ -79,17 +79,18 @@ regex_skipCrypto="\"s/bdna.skipCrypto.*/bdna.skipCrypto$skipCrypto/g\""
 regex_httpConnPort="\"s/8080/$port/g\""
 
 #unzip package tomcat 8.5.29 files to $BDNA_HOME
-echo -e "Step (3/9) unzip package tomcat 8.5.32 files to $BDNA_HOME."
+echo -e "Step (3/4) unzip package tomcat 8.5.32 files to $BDNA_HOME."
 unzip -o $BDNA_HOME/hotfix_BDNA-30390/BDNA-30390_Tomcat8532.zip -d $BDNA_HOME >$BDNA_HOME/logs/hotfix.log
 
 #update BDNA configuration
-echo -e "Step (4/9) update BDNA configuration."
+echo -e "Step (4/4) update BDNA configuration."
 `eval "sed -i -e $regex_newTomcatVersion $bdnaCfgFile 2>/dev/null"`
 `eval "sed -i -e $regex_release $bdnaPropFile 2>/dev/null"`
 `eval "sed -i -e $regex_buildNumber $bdnaPropFile 2>/dev/null"`
 `eval "sed -i -e $regex_skipCrypto $bdnaPropFile 2>/dev/null"`
 `eval "sed -i -e $regex_httpConnPort $newHttpConfFile 2>/dev/null"`
 
+chmod a+x $BDNA_HOME/nih/jdk/bin/jar
 #update class in bdna.jar for tomcat upgrade.
 cd $BDNA_HOME/lib/bdna
 $BDNA_HOME/nih/jdk/bin/jar -uf $BDNA_HOME/lib/bdna.jar com/bdna/clm/CLMConfig.class 
