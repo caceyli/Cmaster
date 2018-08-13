@@ -7,6 +7,7 @@ WHENEVER OSERROR EXIT SQL.SQLCODE;
 
 CREATE TABLE TMPALLPDBS (id number(30),element_ID NUMBER(30),VALUE VARCHAR2(80));
 CREATE TABLE TMPALLDBS (id number(30),element_ID NUMBER(30),VALUE VARCHAR2(80));
+CREATE TABLE TMPBADPDBS (id number(30),element_ID NUMBER(30),VALUE VARCHAR2(80));
 
 -----------------------------------------------------------------------
 ----- Create PROCEDURE GET_ALLPDBS-----
@@ -127,6 +128,7 @@ LOOP
                  execute immediate 'delete from '||containmentName||' WHERE CHILD IN ('||pdbId||')';
                  execute immediate 'delete from '||baseName||' WHERE ID IN (SELECT * FROM CTMP_CHILD_V) OR ID IN ('||pdbId||')';
                  execute immediate 'delete from '||atrrDataName||' WHERE ELEMENT_ID IN (SELECT * FROM CTMP_CHILD_V) OR ELEMENT_ID IN ('||pdbId||')';
+                 execute immediate 'insert into TMPBADPDBS select * from TMPALLPDBS where id='||csNumber||' and value='''||pdb||'''';
                  dbms_output.put_line(dbId);
              end if;          
           else
