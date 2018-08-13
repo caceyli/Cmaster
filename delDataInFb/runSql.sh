@@ -16,7 +16,7 @@ do
     esac
 done
 
-if [ ! -f "./scripts.log" ];then
+if [  -f "./scripts.log" ];then
   rm -rf ./scripts.log
 fi
 
@@ -62,6 +62,12 @@ exit
 EOF
 
 delPdbs=`grep '~' ./scripts.log|uniq`
-echo "[`date`] The following wrong db names were deleted:" | tee -a $LOG_FILE
-echo "$delPdbs" | tee -a $LOG_FILE
+if [ ! -z $delPdbs ] 
+then
+  echo "[`date`] The following wrong db names were deleted:" | tee -a $LOG_FILE
+  echo "$delPdbs" | tee -a $LOG_FILE
+else
+  echo "[`date`] There is no wrong db name to delete." | tee -a $LOG_FILE
+fi
+
 echo "[`date`] Done!" | tee -a $LOG_FILE

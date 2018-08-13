@@ -1,9 +1,21 @@
 WHENEVER SQLERROR EXIT SQL.SQLCODE;
 WHENEVER OSERROR EXIT SQL.SQLCODE;
 
------------------------------------------------------------------------
------ Create tmp tables -----
 ------------------------------------------------------------------------
+---- Create tmp tables -----
+------------------------------------------------------------------------
+
+Declare cursor dropTmpOs is select table_name from user_tables WHERE TABLE_NAME like '%TMP%DBS%';
+    Var01 varchar (80);
+    Begin
+    Open dropTmpOs;
+    Loop
+       fetch dropTmpOs into Var01;
+       exit when dropTmpOs %notfound;
+       execute immediate 'drop table '||Var01||' ';
+    End Loop;
+End;
+/
 
 CREATE TABLE TMPALLPDBS (id number(30),element_ID NUMBER(30),VALUE VARCHAR2(80));
 CREATE TABLE TMPALLDBS (id number(30),element_ID NUMBER(30),VALUE VARCHAR2(80));
@@ -128,6 +140,7 @@ LOOP
                  execute immediate 'delete from '||containmentName||' WHERE CHILD IN ('||pdbId||')';
                  execute immediate 'delete from '||baseName||' WHERE ID IN (SELECT * FROM CTMP_CHILD_V) OR ID IN ('||pdbId||')';
                  execute immediate 'delete from '||atrrDataName||' WHERE ELEMENT_ID IN (SELECT * FROM CTMP_CHILD_V) OR ELEMENT_ID IN ('||pdbId||')';
+                 execute immediate 'delete from '||atrrDataName||' WHERE attribute_name like '''||'lmsDBName'||''' AND CHAR_VALUE = '''||pdb||'''';
                  execute immediate 'insert into TMPBADPDBS select * from TMPALLPDBS where id='||csNumber||' and value='''||pdb||'''';
                  dbms_output.put_line(dbId);
              end if;          
