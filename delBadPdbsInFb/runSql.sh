@@ -49,7 +49,7 @@ fi
 echo "[`date`] Check all pdbs and delete the wrong ones." | tee -a $LOG_FILE
 sqlplus >> "${LOG_FILE}" << EOF
 $USERNAME/$PASSWD@$TNSDB
-@$CURRENT_DIR/delIncorrectDbs.sql
+@$CURRENT_DIR/delBadPdbsInFb.sql
 exit
 EOF
 
@@ -64,10 +64,10 @@ EOF
 delPdbs=`grep '~' ./scripts.log|uniq`
 if [ ! -z $delPdbs ] 
 then
-  echo "[`date`] The following wrong db names were deleted:" | tee -a $LOG_FILE
+  echo "[`date`] The following wrong pdb names were deleted:" | tee -a $LOG_FILE
   echo "$delPdbs" | tee -a $LOG_FILE
 else
-  echo "[`date`] There is no wrong db name to delete." | tee -a $LOG_FILE
+  echo "[`date`] There is no wrong pdb name to delete." | tee -a $LOG_FILE
 fi
 
 echo "[`date`] Done!" | tee -a $LOG_FILE
