@@ -16,6 +16,10 @@ do
     esac
 done
 
+if [  -f "./scripts.log" ];then
+  rm -rf ./scripts.log
+fi
+
 LOG_FILE="./scripts.log"
 CURRENT_DIR=`pwd`
 
@@ -42,9 +46,28 @@ then
     PASSWD=`sh $BDNA_HOME/bin/runjava.sh com.bdna.ut.security.RunDecrypt $PASSWD`
 fi
 
-echo "[`date`] Deleting the Wrong Db Names." | tee -a $LOG_FILE
+echo "[`date`] Check all pdbs and delete the wrong ones." | tee -a $LOG_FILE
 sqlplus >> "${LOG_FILE}" << EOF
 $USERNAME/$PASSWD@$TNSDB
-@$CURRENT_DIR/delIncorrectDbs.sql
+@$CURRENT_DIR/delBadPdbsInFb.sql
 exit
 EOF
+
+sqlplus >> "${LOG_FILE}" << EOF
+$USERNAME/$PASSWD@$TNSDB
+select * from TMPBADPDBS;
+drop table TMPBADPDBS;
+commit;
+exit
+EOF
+
+delPdbs=`grep '~' ./scripts.log|uniq`
+if [ ! -z $delPdbs ] 
+then
+  echo "[`date`] The following wrong pdb names were deleted:" | tee -a $LOG_FILE
+  echo "$delPdbs" | tee -a $LOG_FILE
+else
+  echo "[`date`] There is no wrong pdb name to delete." | tee -a $LOG_FILE
+fi
+
+echo "[`date`] Done!" | tee -a $LOG_FILE
