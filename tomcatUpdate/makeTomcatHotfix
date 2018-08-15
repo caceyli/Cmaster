@@ -13,7 +13,7 @@ my $mkCmd1;
 my $cpCfgCmd;
 my $cpTxtCmd;
 foreach $name (qw /bdna bdna_g/){
-$delCme="rm -rf ./lib/$name ./hotfix_BDNA-30390 2>/dev/null";
+$delCme="rm -rf ./lib/$name ./hotfix_BDNA-30390* 2>/dev/null";
 qx($delCme);
 $mkCmd1="mkdir -p ./lib/$name";
 qx($mkCmd1);
