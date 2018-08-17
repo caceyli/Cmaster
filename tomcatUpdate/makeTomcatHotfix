@@ -51,5 +51,3 @@ if (-e $fileToPath) {
 }
 $cpCfgCmd="cp -r ./cfgHotfix.sh  ./hotfix_BDNA-30390";
 qx($cpCfgCmd);
-$cpTxtCmd="cp readme.txt ./hotfix_BDNA-30390";
-qx($cpTxtCmd);
