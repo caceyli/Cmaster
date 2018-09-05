@@ -1,2 +1,0 @@
-Add/Delete	Network Name	Zone (IP)	CLE	Namespace
-A	192_168_9_107	192.168.9.107	CLE_245BDNACNCOM	Global Namespace

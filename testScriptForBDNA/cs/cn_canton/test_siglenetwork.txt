@@ -1,2 +1,0 @@
-Add/Delete	Network Name	Zone (IP)	CLE	Namespace
-A	192_168_8_249	192.168.8.249	Default collection engine,CLE2	Global Namespace
