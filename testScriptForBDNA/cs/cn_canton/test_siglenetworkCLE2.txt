@@ -1,0 +1,2 @@
+Add/Delete	Network Name	Zone (IP)	CLE	Namespace
+A	192_168_11_184	192.168.11.184	CLE2	Global Namespace

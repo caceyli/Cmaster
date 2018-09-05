@@ -1,0 +1,15 @@
+# sh $BDNA_HOME/bin/runjava.sh com.bdna.agenda.BulkCommon BulkCred4 <CredentialDefinitionsFile>
+#
+# credential_name: Unique name of credential template,
+# credential_type: Name of corresponding credential type: snmp <=> root.types.connectionMethod.pelr.snmp
+# credential_args: atrName<BDNA,1>value[atrName<BDNA,1>value]* attribute value pairs for the credential template
+#
+# Create one of each type of credentials supported by the 4.5 Scan Admin UI:
+#
+
+credential_name	credential_type	credential_args
+
+#import-blackberry-good	BlackBerryEnterpriseServerMSSQLConnection	BESdbName<BDNA,1>BESMgmt<BDNA,>dbUserName<BDNA,1>sa<BDNA,>dbUserPassword<BDNA,1>n1md@bernardo<BDNA,>OSAuthentication<BDNA,1>0<BDNA,>bbMSSQLInstanceName<BDNA,1><BDNA,>
+#import-blackberry-bad	BlackBerryEnterpriseServerMSSQLConnection	BESdbName<BDNA,1>BESMgmt<BDNA,>dbUserName<BDNA,1>sa<BDNA,>dbUserPassword<BDNA,1>badpasswd<BDNA,>OSAuthentication<BDNA,1>0<BDNA,>bbMSSQLInstanceName<BDNA,1><BDNA,>
+
+unix_root	ssh	userName<BDNA,1>root<BDNA,>password<BDNA,1><BDNA,>workingDir<BDNA,1>/tmp/BIT_SMK_TST_ISLAMABAD_unix_root
