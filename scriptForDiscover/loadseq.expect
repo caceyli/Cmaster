@@ -1,0 +1,71 @@
+#!/usr/bin/expect -f
+set timeout -1
+set sequence "/home/bdna/testaxiscode/EnterpriseSequence_latest.seq"
+set port "1521"
+set dbPasswd "bdnacn"
+set encryptionSeed "bdna"
+set adminPasswd "bdna"
+set analystPasswd "bdna"
+set ethName [lindex $argv 0]
+set bdnaHome [lindex $argv 1]
+set dbServer [lindex $argv 2]
+set schemaName [lindex $argv 3]
+set sid [lindex $argv 4]
+spawn sudo ssh -D 22 bdna@localhost
+expect {
+       "(yes/no)?" {send "yes\r";exp_continue}
+       "*password:" {send "bdna\r" }
+}
+expect "\\$"
+send "sh $bdnaHome/bin/configure.sh -e $ethName\r"
+expect "\\]"
+send "y\r"
+expect "\\]" #sequence to load
+send "$sequence\r"
+expect "\\]" #cs or not
+send "y\r"
+expect "\\]" #distributed or not
+send "n\r\r"
+expect "\\]" #schema name
+send "$schemaName\r"
+expect "\\:" #schema password
+send "$schemaName\r"
+expect "\\:" #confirm schema password 
+send "$schemaName\r"
+expect "\\]" #db stand-alone or not
+send "y\r"
+expect "\\]:"
+send "$dbServer\r"
+expect "\\:" #db port
+send "$port\r"
+expect "\\]" #db using sid or not
+send "y\r"
+expect "\\:" #db sid
+send "$sid\r"
+expect "\\]" #setup tns or not
+send "y\r"
+expect "\\]" #drop schema or not
+send "y\r"
+expect "\\:" #encryption seed string
+send "$encryptionSeed\r"
+expect "\\:" #confirm
+send "$encryptionSeed\r"
+expect "\\]" #create schema
+send "y\r"
+expect "\\]" #initiate schema
+send "y\r"
+expect "\\:" #db system user
+send "system\r"
+expect "\\:" #db password
+send "$dbPasswd\r"
+expect "\\:" #admin user password
+send "$adminPasswd\r"
+expect "\\:" #confirm
+send "$adminPasswd\r"
+expect "\\:" #analyst password
+send "$analystPasswd\r"
+expect "\\:" #confirm
+send "$analystPasswd\r"
+expect "\\$"
+send "exit\r"
+interact
